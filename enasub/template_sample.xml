@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+   <SAMPLE alias="exp_mantis_religiosa" broker_name="Quadram Institute Bioscience" center_name="Quadram Institute Bioscience">
+       <TITLE>Illumina sequencing</TITLE>
+        <SAMPLE_NAME>
+            <TAXON_ID>2697049</TAXON_ID>
+            <SCIENTIFIC_NAME>Severe acute respiratory syndrome coronavirus 2</SCIENTIFIC_NAME>
+            <COMMON_NAME></COMMON_NAME>
+        </SAMPLE_NAME>
+        <SAMPLE_ATTRIBUTES></SAMPLE_ATTRIBUTES>
+    </SAMPLE>
