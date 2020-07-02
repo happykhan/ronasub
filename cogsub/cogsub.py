@@ -380,7 +380,7 @@ majora_token = 'def6325a-4c14-40b4-b515-f060c7c03158'
 # REAL SETTINGS 
 majora_server = 'https://majora.covid19.climb.ac.uk'
 majora_username = 'climb-covid19-alikhann'
-majora_token = '2339e1ec-af24-4794-8cbc-b292f58eb63c'
+majora_token = '60b823ba-ca95-4919-b7c7-e9379c1fcd61'
 climb_file_server = 'bham.covid19.climb.ac.uk'
 climb_username = 'climb-covid19-alikhann'
 sheet_name = 'SARCOV2-Metadata'
@@ -433,5 +433,16 @@ output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.
 run_name = '200610_NB501819_0140_AH5Y2LAFX2'
 library_name = 'NORW-' + run_name.split('_')[0]
 
-main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
+#main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
 
+output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200617'
+run_name = '200617_NB501819_0142_AH5W3YAFX2'
+library_name = 'NORW-' + run_name.split('_')[0]
+
+#main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=False)
+
+output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200624'
+run_name = '200624_NB501819_0143_AH5VV7AFX2'
+library_name = 'NORW-' + run_name.split('_')[0]
+
+main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=False)

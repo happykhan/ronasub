@@ -6,6 +6,9 @@ import logging
 from marshmallow import Schema, fields, EXCLUDE, pre_load, validate
 import csv 
 import datetime
+import seaborn as sns
+import matplotlib.pyplot as plt
+
 
 class BioMeta(Schema):
     postcode_regex = '([Gg][Ii][Rr] 0[Aa]{2})|((([A-Za-z][0-9]{1,2})|(([A-Za-z][A-Ha-hJ-Yj-y][0-9]{1,2})|(([A-Za-z][0-9][A-Za-z])|([A-Za-z][A-Ha-hJ-Yj-y][0-9][A-Za-z]?)))))'
@@ -55,7 +58,7 @@ class BioMeta(Schema):
         for k,v in dict(in_data).items():
             if v in ['', 'to check'] :
                 in_data.pop(k)        
-            elif k in ['County', 'Collecting organisation', 'Outer Postcode'] and v.upper() in ['UNKNOWN', 'NO ADDRESS', 'NO POST CODE']:
+            elif k in ['County', 'Collecting organisation', 'Outer Postcode'] and v.upper() in ['NOT AVAILABLE', 'UNKNOWN', 'NO ADDRESS', 'NO POST CODE']:
                 in_data.pop(k)
             elif k in ['Sex'] and v.upper() in ['U', 'N']:
                 in_data.pop(k)                
@@ -316,14 +319,111 @@ def update_surv_meta(surv, surv_counts, client, sheet_name='SARCOV2-Metadata'):
             print(f'Valid orgs are ' + ','.join(valid_orgs))
     print(surv_counts)
 
+import re
+
+def common_member(a, b): 
+    a_set = set(a) 
+    b_set = set(b) 
+    if (a_set & b_set): 
+        return True 
+    else: 
+        return False
+
+def update_patient_id(client, sheet_name='SARCOV2-Metadata'):
+    sheet = client.open(sheet_name).sheet1
+    all_values = sheet.get_all_records()
+    linked = []
+    lineage_lookup = {} 
+    qc_lookup = {}
+    date_lookup = {}
+    uniq_biosample = [] 
+    for x in all_values:
+        if not x['central_sample_id'].endswith('duplicate'):
+            date_lookup[x['central_sample_id']] = x['collection_date']
+            lineage_lookup[x['central_sample_id']] = x['uk_lineage']
+            qc_lookup[x['central_sample_id']] = x['Basic QC']        
+
+            if len(x['biosample_source_id']) > 1 :
+                uniq_biosample.append(x['biosample_source_id'])
+                linked_values = [] 
+                linked_values += re.findall('(D,20.\d+)', x['biosample_source_id'])
+                linked_values += re.findall('(20C\d{6})', x['biosample_source_id'])
+                linked_values += re.findall('(D20.\d+)', x['biosample_source_id'])
+                linked_values += re.findall('(D,20.\d+)', x['repeat_sample_id'])
+                linked_values += re.findall('(20C\d{6})', x['repeat_sample_id'])
+                linked_values += re.findall('(D20.\d+)', x['repeat_sample_id'])
+                linked_values.append(x['central_sample_id'])
+                added = False
+                for exist in linked:
+                    if common_member(linked_values, exist):
+                        exist += linked_values
+                        added = True
+                if not added:
+                    linked.append(linked_values)
+    cells_to_update = [] 
+    column_position = sheet.row_values(1)
+    row_position = sheet.col_values(1)                         
+    for link in linked:
+        ids = [x for x in link if x.startswith('NORW')]
+        min_id = sorted(ids)[0]  
+        if len(ids) > 1:
+            for id in ids: 
+                cells_to_update.append(gspread.models.Cell(row=row_position.index(id)+1, col=column_position.index('patient_group')+1, value=min_id))
+    if cells_to_update:
+        print('Updating values')
+        sheet.update_cells(cells_to_update)
+    all_values = sheet.get_all_records()
+    # Reports 
+    with open('patient_groups.txt', 'w') as pat_out:
+        pat_out.write('PATIENT_GROUP\tCOGID\tDATE\tLINEAGE\tBASICQC\n')
+        group_sum = {}
+        for x in all_values:
+            pat = x['patient_group']
+            cog_id = x['central_sample_id']
+            if pat:
+                pat_out.write(f'{pat}\t{cog_id}\t{x["collection_date"]}\t{x["uk_lineage"]}\t{x["Basic QC"]}\n')
+                if group_sum.get(pat):
+                    group_sum[pat]['count'] += 1
+                    group_sum[pat]['date_list'].append(x['collection_date'])
+                else:
+                    group_sum[pat] = dict(count=1, date_list = [x['collection_date']])
+        total_multiple_samples = sum([x['count'] for x in group_sum.values()])
+        multiple_dates = len([x for x,y in group_sum.items() if len(list(set(y['date_list']))) > 1])
+        print(f'TOTAL SAMPLES THAT ARE LINKED: {total_multiple_samples}')
+        print(f'TOTAL GROUPS THAT ARE LINKED: {len(group_sum)}')
+        print(f'TOTAL GROUPS THAT ARE LINKED (with different dates): {multiple_dates}')
+        from itertools import groupby
+        group_counts = sorted([x['count'] for x in group_sum.values() if x['count'] > 1])
+        group_counted = {key: len(list(group)) for key, group in groupby(group_counts)}
+        print('linked_samples_group\tFrequency')
+        plt.style.use('ggplot')
+
+        plt.bar(group_counted.keys(), group_counted.values(), color='green')
+        plt.xlabel('No. of samples in a group')
+        plt.ylabel('Count')
+        plt.savefig('linked_samples_group.png')
+        plt.savefig('linked_samples_group.svg')
+        for x,y in group_counted.items():
+            print(f'{x}\t{y}')
+        group_date_count = sorted([len(list(set(y['date_list']))) for x,y in group_sum.items() if len(list(set(y['date_list']))) > 1])
+        group_counted = {key: len(list(group)) for key, group in groupby(group_date_count)}
+        print('linked_date_group\tFrequency')
+        for x,y in group_counted.items():
+            print(f'{x}\t{y}')
+        plt.bar(group_counted.keys(), group_counted.values(), color='green')
+        plt.xlabel('No. of samples in a group')
+        plt.ylabel('Count')
+        plt.savefig('linked_date_group.png')
+        plt.savefig('linked_date_group.svg')        
+
 scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
 creds = ServiceAccountCredentials.from_json_keyfile_name('cogsub/credentials.json', scope)
 client = gspread.authorize(creds)
 logging.basicConfig(level=logging.DEBUG)
 
 # Update surveliannce 
-new_dict, surv_counts = get_surv_metadata(client)
-update_surv_meta(new_dict, surv_counts, client)
+#new_dict, surv_counts = get_surv_metadata(client)
+#update_surv_meta(new_dict, surv_counts, client)
 
 
 # Update Lineage
@@ -337,3 +437,5 @@ update_ct_meta(new_dict, client)
 new_dict = get_bio_metadata(client)
 update_our_meta(new_dict, client, force_update = False)
 
+# Create Patients field
+update_patient_id(client)

@@ -14,26 +14,34 @@ from marshmallow import Schema, fields, EXCLUDE, pre_load, validate, post_dump
 import datetime
 import csv
 
-def main(data_name, bam_dir, mapping_file=None, upload=False, suffix='sorted.bam'):
+def main(data_name, bam_dir, upload=False, suffix='sorted.bam'):
+    scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
+    client = gspread.authorize(creds)    
     # Fetch all samples in DIR
     sample_meta = {}
     mapping_files = {}
-    if mapping_file:
-        for x in csv.DictReader(open(mapping_file)):
-            mapping_files[x['barcode']] = x['central_sample_id']
+    if data_name != 'Illumina':
+        sheet = client.open("CoronaHiT Supplementary Tables").worksheet("cog barcode")
+        all_values = sheet.get_all_records()
+        for x in all_values:
+            sample = x['central_sample_id']
+            jj = ''
+            if data_name == 'CoronaHiT-48':
+                jj = 'coronaHiT_48'
+
+            if len(x[jj]) > 1 :
+                mapping_files[x[jj]] = sample
 
     for bam_file in os.listdir(bam_dir):
         if bam_file.endswith(suffix):
             sample_name = 'NORW-' + bam_file.split('_')[0]
             clean_file_name = data_name + '_' + bam_file
-            if mapping_file:
+            if data_name != 'Illumina':
                 clean_file_name = data_name + '_' + mapping_files[bam_file.split('_')[1].split('.')[0]] + '.sorted.bam'
                 sample_name = 'NORW-' + mapping_files[bam_file.split('_')[1].split('.')[0]]
             sample_meta[sample_name] = dict(filepath=os.path.join(bam_dir, bam_file), filename = clean_file_name, study=study)
 
-    scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
-    client = gspread.authorize(creds)
 
     # Fetch metadata from master table. 
     sheet = client.open("CoronaHiT Supplementary Tables").worksheet("Sheet8")
@@ -97,19 +105,25 @@ def main(data_name, bam_dir, mapping_file=None, upload=False, suffix='sorted.bam
 
 
 study = 'ERP122169'
-bam_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200522/ncovIllumina_sequenceAnalysis_readMapping'
-data_name = 'Illumina'
-bam_suffix = 'sorted.bam'
-main(data_name, bam_dir, suffix=bam_suffix)
 
-bam_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/cog13.coronahit/result.coronahit.20200527.cog13.f50.r40/articNcovNanopore_sequenceAnalysisMedaka_articMinIONMedaka'
-data_name = 'CoronaHiT'
-mapping_file = 'coronaont'
+bam_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/cog13.coronahit/result.coronahit.20200610.cog13.f50.r40/articNcovNanopore_sequenceAnalysisMedaka_articMinIONMedaka/'
+data_name = 'CoronaHiT-48'
 bam_suffix = 'sorted.bam'
-main(data_name, bam_dir, mapping_file, suffix=bam_suffix, upload=True)
+main(data_name, bam_dir, suffix=bam_suffix, upload=True)
 
-bam_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/cog13.coronahit/result.nanopore.20200602/articNcovNanopore_sequenceAnalysisMedaka_articMinIONMedaka'
-data_name = 'ARTIC_ONT'
-mapping_file = 'stdont'
-bam_suffix = 'sorted.bam'
-main(data_name, bam_dir, mapping_file, suffix=bam_suffix, upload=True)
+# bam_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200522/ncovIllumina_sequenceAnalysis_readMapping'
+# data_name = 'Illumina'
+# bam_suffix = 'sorted.bam'
+# main(data_name, bam_dir, suffix=bam_suffix, upload=True)
+
+# bam_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/cog13.coronahit/result.coronahit.20200527.cog13.f50.r40/articNcovNanopore_sequenceAnalysisMedaka_articMinIONMedaka'
+# data_name = 'CoronaHiT'
+# mapping_file = 'coronaont'
+# bam_suffix = 'sorted.bam'
+# main(data_name, bam_dir, suffix=bam_suffix, upload=True)
+
+# bam_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/cog13.coronahit/result.nanopore.20200602/articNcovNanopore_sequenceAnalysisMedaka_articMinIONMedaka'
+# data_name = 'ARTIC_ONT'
+# mapping_file = 'stdont'
+# bam_suffix = 'sorted.bam'
+# main(data_name, bam_dir, suffix=bam_suffix, upload=True)
