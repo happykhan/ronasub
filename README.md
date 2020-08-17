@@ -1,5 +1,5 @@
-# rona
-Helper scripts for bioinformatics stuff.
+# ronasub
+Helper scripts for merging and submitting SARSCOV data to ENA, NCBI, COG
 
 Should include:
 
@@ -8,6 +8,11 @@ Should include:
 * NRP Metadata conversion to master table.
 
 # Installation
+Python3! 
+
+```
+pip install -r requirements.txt
+```
 
 ## Google Sheets 
 These scripts heavily use Google Sheets to track information. You will need your own developer account and you
