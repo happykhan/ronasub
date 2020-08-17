@@ -9,78 +9,12 @@ import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import requests
 import json 
-from marshmallow import Schema, fields, validate, EXCLUDE, pre_load
 import paramiko
 import logging
 import pprint
+from marshmallow import EXCLUDE
+from cogschemas import Cogmeta, CtMeta
 
-class Cogmeta(Schema):
-
-    central_sample_id = fields.Str()
-    adm1 = fields.Str()
-    collection_date = fields.Date()
-    received_date = fields.Date()
-    source_age = fields.Integer(validate=validate.Range(min=0, max=110))
-    source_sex = fields.Str(validate=validate.OneOf(["M", "F"]))
-    adm2 = fields.Str()
-    adm2_private = fields.Str()
-    collecting_org = fields.Str()
-    biosample_source_id = fields.Str()
-    sample_type_collected = fields.Str()
-    swab_site = fields.Str()    
-    is_surveillance = fields.Str()
-    is_icu_patient = fields.Str(validate=validate.OneOf(["Y", "N"]))
-
-    @pre_load
-    def clean_up(self, in_data, **kwargs):
-        for k,v in dict(in_data).items():
-            if v in ['', 'to check',  '#VALUE!', '-'] :
-                in_data.pop(k)        
-            elif isinstance(v, str):
-                    in_data[k] = v.strip().upper()
-            if in_data.get('is_icu_patient') not in ['Y', 'N']:
-                if in_data.get('is_icu_patient'):
-                    in_data.pop('is_icu_patient')        
-        return in_data
-
-class CtMeta(Schema):
-    ct_1_ct_value = fields.Float(validate=validate.Range(min=0, max=60))
-    ct_1_test_kit = fields.Str(validate=validate.OneOf(["ALTONA", "ABBOTT", "INHOUSE", "ROCHE", "AUSDIAGNOSTICS", "BOSPHORE", "SEEGENE"]))
-    ct_1_test_platform = fields.Str(validate=validate.OneOf(["ALTOSTAR_AM16", "ABBOTT_M2000", "ROCHE_FLOW", "ROCHE_COBAS", "ELITE_INGENIUS", "CEPHEID_XPERT", "QIASTAT_DX", "AUSDIAGNOSTICS", "ROCHE_LIGHTCYCLER", "INHOUSE" ,"ALTONA", "PANTHER", "SEEGENE_NIMBUS"]))
-    ct_1_test_target = fields.Str(validate=validate.OneOf(["S", "E", "RDRP", "N", "ORF1AB", "ORF8", "RDRP+N"]))    
-    ct_2_ct_value = fields.Float(validate=validate.Range(min=0, max=60))
-    ct_2_test_kit = fields.Str(validate=validate.OneOf(["ALTONA", "ABBOTT", "INHOUSE", "ROCHE", "AUSDIAGNOSTICS", "BOSPHORE", "SEEGENE"]))
-    ct_2_test_platform = fields.Str(validate=validate.OneOf(["ALTOSTAR_AM16", "ABBOTT_M2000", "ROCHE_FLOW", "ROCHE_COBAS", "ELITE_INGENIUS", "CEPHEID_XPERT", "QIASTAT_DX", "AUSDIAGNOSTICS", "ROCHE_LIGHTCYCLER", "QIAGEN_ROTORGENE", "INHOUSE" ,"ALTONA", "PANTHER", "SEEGENE_NIMBUS"]))
-    ct_2_test_target = fields.Str(validate=validate.OneOf(["S", "E", "RDRP", "N", "ORF1AB", "ORF8", "RDRP+N"]))    
-
-
-    @pre_load
-    def clean_up(self, in_data, **kwargs):
-        for k,v in dict(in_data).items():
-            if v in ['', 'to check',  '#VALUE!', '-'] :
-                in_data.pop(k)        
-            elif isinstance(v, str):
-                    in_data[k] = v.strip().upper()
-        return in_data
-
-class RunMeta(Schema):
-    run_name = fields.Str()
-    instrument_make = fields.Str()
-    instrument_model = fields.Str()
-
-class LibraryHeaderMeta(Schema):
-    library_name = fields.Str()
-    library_seq_kit = fields.Str()
-    library_seq_protocol = fields.Str()
-    library_layout_config = fields.Str()
-
-class LibraryBiosampleMeta(Schema):
-    central_sample_id = fields.Str()
-    library_selection = fields.Str()
-    library_source = fields.Str()
-    library_strategy = fields.Str()
-    library_protocol = fields.Str(default='ARTIC')
-    library_primers = fields.Integer()
 
 def majora_sample_exists(sample_name, username, key, SERVER, dry = False):
     address = SERVER + '/api/v2/artifact/biosample/get/'
@@ -167,7 +101,8 @@ def majora_add_library(library_list, username, key, SERVER, dry = True):
         else:
             for x in response_dict['ignored']:
                 if not majora_sample_exists(x , majora_username, majora_token, majora_server):
-                    print(x + ' Does not exists')
+                    pass
+                   # print(x + ' Does not exists')
                 
             return False
     else:
@@ -200,7 +135,7 @@ def get_google_metadata(valid_samples, sheet_name):
     if in_run_but_not_in_sheet:
         logging.error('missing records in metadata sheet' + '\n'.join(in_run_but_not_in_sheet))
     for x in all_values:
-       
+        
         if x.get('central_sample_id', 'burnburnburn') in valid_samples:
             for k,v in dict(x).items():
                 if v == '':
@@ -228,8 +163,11 @@ def get_google_metadata(valid_samples, sheet_name):
             # Get CT info
             up_record = Cogmeta().dump(record)
             ct_values = CtMeta(unknown=EXCLUDE).load(x)
-            up_record['metrics'] = dict(ct=dict(records={}))
 
+            up_record['metrics'] = dict(ct=dict(records={}))
+            if len(up_record.get('patient_group', '')) > 4: 
+                #if up_record['patient_group'] != up_record['central_sample_id']:
+                up_record['biosample_source_id'] = up_record['patient_group']
             up_record['metrics']['ct']['records']['1'] = dict(ct_value=ct_values.get('ct_1_ct_value', 0), test_kit=ct_values.get('ct_1_test_kit'), test_platform=ct_values.get('ct_1_test_platform'), test_target=ct_values.get('ct_1_test_target'))
             up_record['metrics']['ct']['records']['2'] = dict(ct_value=ct_values.get('ct_2_ct_value', 0), test_kit=ct_values.get('ct_2_test_kit'), test_platform=ct_values.get('ct_2_test_platform'), test_target=ct_values.get('ct_2_test_target'))
             records_to_upload.append(up_record)
@@ -306,15 +244,16 @@ def main(output_dir, run_name, library_name, majora_server, majora_username, maj
     if os.path.exists(output_dir_uploadlist):
         uploadlist = [x.strip() for x in open(output_dir_uploadlist).readlines()]
     if os.path.exists(output_dir_blacklist):
-        blacklist = [x.strip() for x in open(output_dir_uploadlist).readlines()]
+        blacklist = [x.strip() for x in open(output_dir_blacklist).readlines()]
     for x in os.listdir(output_dir_bams):
         if x.startswith('E') and x.endswith('sorted.bam'):
             sample_name = x.split('_')[0]
             if uploadlist: 
-                if not sample_name in uploadlist:
+                if not 'NORW-' + sample_name in uploadlist:
                     continue
             if blacklist:
-                if sample_name in blacklist:
+                if 'NORW-' + sample_name in blacklist:
+                    logging.info('Skipping ' + sample_name)
                     continue
             sample_name = x.split('_')[0]
             #sample_folder = os.path.join(run_path , 'NORW-' + sample_name)
@@ -380,10 +319,48 @@ majora_token = 'def6325a-4c14-40b4-b515-f060c7c03158'
 # REAL SETTINGS 
 majora_server = 'https://majora.covid19.climb.ac.uk'
 majora_username = 'climb-covid19-alikhann'
-majora_token = '60b823ba-ca95-4919-b7c7-e9379c1fcd61'
+majora_token = '42092929-86fd-4991-a1ef-1ca81db487e7'
 climb_file_server = 'bham.covid19.climb.ac.uk'
 climb_username = 'climb-covid19-alikhann'
 sheet_name = 'SARCOV2-Metadata'
+
+
+output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200812'
+run_name = '200812_NB501819_0153_AH7TNJAFX2'
+library_name = 'NORW-' + run_name.split('_')[0]
+
+main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=False)
+
+
+output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200805'
+run_name = '200805_NB501819_0151_AH5WMHAFX2'
+library_name = 'NORW-' + run_name.split('_')[0]
+
+main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
+
+
+output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200729'
+run_name = '200729_NB501819_0149_AH7T7VAFX2'
+library_name = 'NORW-' + run_name.split('_')[0]
+
+main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
+
+
+output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200715'
+run_name = '200715_NB501819_0147_AH5KW5AFX2'
+library_name = 'NORW-' + run_name.split('_')[0]
+
+main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
+
+
+
+output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200708'
+run_name = '200708_NB501819_0146_AH5WJKAFX2'
+library_name = 'NORW-' + run_name.split('_')[0]
+
+main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
+
+
 
 
 # run 1
@@ -398,51 +375,58 @@ output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.
 run_name = '200429_NB501819_0132_AH5J7GAFX2'
 library_name = 'NORW-' + run_name.split('_')[0]
 
-#main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)        
+main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)        
 
 # # run 3
 output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200513/'
 run_name = '200513_NB501819_0135_AH5JCCAFX2'
 library_name = 'NORW-' + run_name.split('_')[0]
 
-#main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
+main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
 
 # run 4
 output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200519/'
 run_name = '200519_NB501819_0137_AH5YM5AFX2'
 library_name = 'NORW-' + run_name.split('_')[0]
 
-#main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
+main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
 
 # run 5
 output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200522/'
 run_name = '200522_NB501819_0138_AH722WAFX2'
 library_name = 'NORW-' + run_name.split('_')[0]
 
-#main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
+main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
 
 # run 6
-output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200602.filtered_cont_reads_all_min_cov_100/'
+output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200602/'
 run_name = '200602_NB501819_0139_AH5W5VAFX2'
 library_name = 'NORW-' + run_name.split('_')[0]
 
-#main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
+main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
 
 # run 8
 output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200610/'
 run_name = '200610_NB501819_0140_AH5Y2LAFX2'
 library_name = 'NORW-' + run_name.split('_')[0]
 
-#main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
+main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
 
 output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200617'
 run_name = '200617_NB501819_0142_AH5W3YAFX2'
 library_name = 'NORW-' + run_name.split('_')[0]
 
-#main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=False)
+main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
 
 output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200624'
 run_name = '200624_NB501819_0143_AH5VV7AFX2'
 library_name = 'NORW-' + run_name.split('_')[0]
 
-main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=False)
+main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
+
+output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200701'
+run_name = '200701_NB501819_0144_AH5VWMAFX2'
+library_name = 'NORW-' + run_name.split('_')[0]
+
+main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
+
