@@ -20,6 +20,8 @@ These scripts heavily use Google Sheets to track information. You will need your
 
 https://console.developers.google.com/project?pli=1
 
+If you are contributing to the QIB SARSCOV get in touch with @happykhan, who can issue the correct keys. 
+
 # NRP2COG
 
 NRP2COG merges disperate Google sheets with various information into a single master table.

@@ -77,12 +77,12 @@ if __name__ == '__main__':
     ct_parser.set_defaults(func=update_ct_option)
 
     # Update lineage parser
-    lineage_parser = subparsers.add_parser('lineage_update', help='Update Linaege values')
+    lineage_parser = subparsers.add_parser('lineage_update', help='Update Lineage values')
     lineage_parser.add_argument('--lineagedata', action='store', default='peroba')
     lineage_parser.set_defaults(func=update_lineage_option)
 
     # Export lineage parser
-    export_parser = subparsers.add_parser('export_lineage', help='Export Linaege values')
+    export_parser = subparsers.add_parser('export_lineage', help='Export Lineage values')
     export_parser.add_argument('--exportdata', action='store', default='Sample-lineages')
     export_parser.set_defaults(func=export_lineage_option)
 
