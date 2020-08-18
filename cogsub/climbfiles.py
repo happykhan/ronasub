@@ -1,5 +1,6 @@
 import paramiko
 import logging 
+import os 
 
 class ClimbFiles():
 
