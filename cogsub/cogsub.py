@@ -206,12 +206,9 @@ def main(args, dry=False):
                 samples_dont_exist.append(biosample['central_sample_id'] )
         if majora_add_samples(records_to_upload, majora_username, majora_token, majora_server, dry):
             logging.debug(f'Submitted biosamples to majora')
-#            if len(samples_dont_exist) > 0 :
             logging.debug(f'Submitting library and run to majora')
             for lib_val in library_to_upload.values():
                 clean_lib_val = lib_val.copy()
-                #clean_lib_val['biosamples'] = [x for x in clean_lib_val['biosamples'] if x['central_sample_id'] in samples_dont_exist]
-                # You shouldn't touch libraries for existing samples i.e we only submit new runs. 
                 if len(clean_lib_val['biosamples']) > 0 : 
                     run_to_upload = dict(library_name=lib_val['library_name'], runs = clean_lib_val.pop('runs'))
                     

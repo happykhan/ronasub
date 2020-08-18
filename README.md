@@ -14,17 +14,6 @@ Python3!
 pip install -r requirements.txt
 ```
 
-## Google Sheets 
-These scripts heavily use Google Sheets to track information. You will need your own developer account and you
- will need to have a valid JSON files with all the various keys. 
-
-https://console.developers.google.com/project?pli=1
-
-If you are contributing to the QIB SARSCOV2 get in touch with @happykhan, who can issue the correct keys. 
-
-Once you 
-
-
 # NRP2COG
 
 NRP2COG merges disperate Google sheets with various information into a single master table.
@@ -41,5 +30,18 @@ lineage_update is run when there is updates from PEROBA.
 
 export_lineages are run on request (weekly usually) to feedback contextual data and lineage information.
 
-# COGSUB 
 
+## Configuration for NRP2COG
+These scripts heavily use Google Sheets to track information. You will need your own developer account and you
+ will need to have a valid JSON files with all the various keys (see credentials_template.json for an example). 
+ 
+https://console.developers.google.com/project?pli=1
+
+There is usually location and a flag to pass your own path to the config file. If you are contributing to 
+the QIB SARSCOV2 get in touch with @happykhan, who can issue the correct keys. 
+
+# COGSUB 
+COGSUB submits the metadata and sequences to COG UK. 
+
+## Configuration for COGSUB
+You will need the google sheet credentials (as above). You will also need to set up a config JSON file for COG/Majora (see Majora_template.json for an example)

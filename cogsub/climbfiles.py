@@ -1,4 +1,5 @@
 import paramiko
+import logging 
 
 class ClimbFiles():
 
