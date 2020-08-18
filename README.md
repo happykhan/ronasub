@@ -20,7 +20,7 @@ These scripts heavily use Google Sheets to track information. You will need your
 
 https://console.developers.google.com/project?pli=1
 
-If you are contributing to the QIB SARSCOV get in touch with @happykhan, who can issue the correct keys. 
+If you are contributing to the QIB SARSCOV2 get in touch with @happykhan, who can issue the correct keys. 
 
 Once you 
 
@@ -40,3 +40,6 @@ For COG and other database submission, the most important modules are update_met
 lineage_update is run when there is updates from PEROBA. 
 
 export_lineages are run on request (weekly usually) to feedback contextual data and lineage information.
+
+# COGSUB 
+

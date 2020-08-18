@@ -1,0 +1,8 @@
+
+{
+    "majora_server": "https://majora.covid19.climb.ac.uk",
+    "majora_username": "<YOUR_ID>",
+    "majora_token": "<YOUR_ID>",
+    "climb_file_server": "bham.covid19.climb.ac.uk",
+    "climb_username": "<YOUR_ID>"
+}
