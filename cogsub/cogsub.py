@@ -1,120 +1,44 @@
+"""
+cogsub submits metadata and sequences to COG server 
+
+Requires login for google sheets
+
+### CHANGE LOG ### 
+2020-08-17 Nabil-Fareed Alikhan <nabil@happykhan.com>
+    * Initial build - split from dirty scripts
+"""
 from __future__ import print_function
 import pickle
 import os.path
-from googleapiclient.discovery import build
+import time
+import argparse
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 import os
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 import requests
+import meta
+import sys
 import json 
-import paramiko
 import logging
 import pprint
 from marshmallow import EXCLUDE
-from cogschemas import Cogmeta, CtMeta
+from cogschemas import Cogmeta, CtMeta, RunMeta, LibraryBiosampleMeta, LibraryHeaderMeta
+from climbfiles import ClimbFiles
+from majora_util import majora_sample_exists, majora_add_samples, majora_add_run, majora_add_library
+from collections import Counter
+
+epi = "Licence: " + meta.__licence__ +  " by " +meta.__author__ + " <" +meta.__author_email__ + ">"
+logging.basicConfig()
+log = logging.getLogger()
 
 
-def majora_sample_exists(sample_name, username, key, SERVER, dry = False):
-    address = SERVER + '/api/v2/artifact/biosample/get/'
-    payload = dict(central_sample_id=sample_name, username=username, token=key, client_name='cogsub', client_version='0.1')
-    response = requests.post(address, headers = {"Content-Type": "application/json", "charset": "UTF-8"}, json = payload)
-    if not dry:
-        response_dict = json.loads(response.content)
-        if response_dict['errors'] == 0:
-            return True
-        else:
-            return False
-    else:
-        logging.debug(pprint.pprint(payload))
-        return True
-
-def majora_is_dirty_sample(sample, username, key, SERVER, dry = True):
-    address = SERVER + '/api/v2/artifact/biosample/get/'
-    sample = Cogmeta().load(sample)
-    cog_id = sample['central_sample_id']
-    payload = dict(central_sample_id=cog_id, username=username, token=key, client_name='cogsub', client_version='0.1')
-    response = requests.post(address, headers = {"Content-Type": "application/json", "charset": "UTF-8"}, json = payload)
-    response_dict = json.loads(response.content)
-    # Check is sample missing, if so it's dirty by default
-    if response_dict['messages']:
-        if response_dict['messages'][0] == "'central_sample_id' key missing or empty" or not response_dict['success']:
-            return True
-    response_list = response_dict.get('get')
-    if response_list:
-        # Check biosample source id. 
-        cog_biosample_source_id = list(response_list.values())[0]['biosample_sources'][0]['biosample_source_id']
-        if sample['biosample_source_id'] != cog_biosample_source_id:
-            return True
-        sample.pop('biosample_source_id')
-        # Check if keys in sample not in cog
-        cog_record = Cogmeta(unknown = EXCLUDE).load(list(response_list.values())[0])
-        if len(sample.keys() - cog_record.keys()) > 0:
-            return True
-        # Check if there are different values
-        for k, v in sample.items():
-            if cog_record[k] != v:
-                return True
-    return False
-    
-
-def majora_add_samples(sample_list, username, key, SERVER, dry = True):
-    address = SERVER + '/api/v2/artifact/biosample/add/'
-    payload = dict(username=username, token=key, client_name='cogsub', client_version='0.1')
-    payload["biosamples"] = sample_list
-    if not dry:
-        response = requests.post(address, headers = {"Content-Type": "application/json", "charset": "UTF-8"}, json = payload)
-        response_dict = json.loads(response.content)
-        if response_dict['errors'] == 0:
-            return True
-        else:
-            return False
-    else:
-        logging.debug(pprint.pprint(payload))
-        return True
-
-def majora_add_run(run_list, username, key, SERVER, dry = True):
-    address = SERVER + '/api/v2/process/sequencing/add/'
-    payload = dict(username=username, token=key, client_name='cogsub', client_version='0.1')
-    payload.update(run_list)
-    if not dry: 
-        response = requests.post(address, headers = {"Content-Type": "application/json", "charset": "UTF-8"}, json = payload)
-        response_dict = json.loads(response.content)
-        if response_dict['errors'] == 0:
-            return True
-        else:
-            return False
-    else:
-        logging.debug(pprint.pprint(payload))
-        return True
-
-def majora_add_library(library_list, username, key, SERVER, dry = True):
-    address = SERVER + '/api/v2/artifact/library/add/'
-    payload = dict(username=username, token=key, client_name='cogsub', client_version='0.1')
-    payload.update(library_list)
-    if not dry:
-        response = requests.post(address, headers = {"Content-Type": "application/json", "charset": "UTF-8"}, json = payload)
-        response_dict = json.loads(response.content)
-        if response_dict['errors'] == 0:
-            return True
-        else:
-            for x in response_dict['ignored']:
-                if not majora_sample_exists(x , majora_username, majora_token, majora_server):
-                    pass
-                   # print(x + ' Does not exists')
-                
-            return False
-    else:
-        logging.debug(pprint.pprint(payload))
-
-from collections import Counter 
-  
 def most_frequent(List): 
     occurence_count = Counter(List) 
     return occurence_count.most_common(1)[0][0] 
 
-def get_google_metadata(valid_samples, sheet_name):
+def get_google_metadata(valid_samples, run_name, library_name, sheet_name):
     scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
     creds = ServiceAccountCredentials.from_json_keyfile_name('cogsub/credentials.json', scope)
     client = gspread.authorize(creds)
@@ -201,33 +125,23 @@ def get_google_metadata(valid_samples, sheet_name):
             sheet.update_cells(blank_cells_to_update)        
     return records_to_upload, library_to_upload
 
-class ClimbFiles():
+def load_config(config="majora.json"):
+    config_dict = json.load(open(config))
+    return config_dict
 
-    def __init__(self, climb_file_server, climb_username):
-        ssh = paramiko.SSHClient()
-        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-        ssh.connect(climb_file_server, username=climb_username)
-        self.sftp = ssh.open_sftp() 
-
-    def create_climb_dir(self, dir_name):
-        try:
-            self.sftp.stat(dir_name)
-        except FileNotFoundError:
-            logging.debug(f'dir {dir_name} on remote not found, creating')
-            self.sftp.mkdir(dir_name)
-        return dir_name
-
-    def put_file(self, filename, path):
-        remote_file_path = os.path.join(path, os.path.basename(filename))
-        try:
-            self.sftp.stat(remote_file_path)
-        except FileNotFoundError:
-            logging.debug(f'sending file {filename}')
-            self.sftp.put(filename, remote_file_path) 
-        return remote_file_path
-
-
-def main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=True, force_sample_only=False):
+def main(args, dry=False):
+    # Load from config
+    config = load_config(args.majora_token)
+    output_dir = args.datadir
+    run_name = args.runname
+    library_name = 'NORW-' + run_name.split('_')[0]
+    majora_server = config['majora_server']
+    majora_username = config['majora_username']
+    majora_token = config['majora_token']
+    climb_file_server = config['climb_file_server']
+    climb_username = config['climb_username'] 
+    sheet_name = args.sheet_name
+    force_sample_only = args.force_sample_only
     logging.debug(f'Dry run is {dry}')
     output_dir_bams = os.path.join(output_dir, 'ncovIllumina_sequenceAnalysis_readMapping')
     output_dir_consensus = os.path.join(output_dir, 'ncovIllumina_sequenceAnalysis_makeConsensus')
@@ -279,7 +193,7 @@ def main(output_dir, run_name, library_name, majora_server, majora_username, maj
 
     # Connect to google sheet. Fetch & validate metadata
     logging.debug(f'Found {len(found_samples)} samples')
-    records_to_upload, library_to_upload = get_google_metadata(found_samples, sheet_name=sheet_name)
+    records_to_upload, library_to_upload = get_google_metadata(found_samples, run_name, library_name, sheet_name=sheet_name)
 
     # Connect to majora cog and sync metadata. 
     logging.debug(f'Submitting biosamples to majora ' + run_name)
@@ -306,127 +220,26 @@ def main(output_dir, run_name, library_name, majora_server, majora_username, maj
         else:
             logging.error('failed to submit samples')
 
-
-# Look in analysis output dir and get list of samples with consensus and mapped reads 
-logging.basicConfig(level=logging.DEBUG)
-
-# global
-# TEST SETTINGS 
-majora_server = 'https://covid.majora.ironowl.it'
-majora_username = 'test-climb-covid19-alikhann'
-majora_token = 'def6325a-4c14-40b4-b515-f060c7c03158'
-
-# REAL SETTINGS 
-majora_server = 'https://majora.covid19.climb.ac.uk'
-majora_username = 'climb-covid19-alikhann'
-majora_token = '42092929-86fd-4991-a1ef-1ca81db487e7'
-climb_file_server = 'bham.covid19.climb.ac.uk'
-climb_username = 'climb-covid19-alikhann'
-sheet_name = 'SARCOV2-Metadata'
-
-
-output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200812'
-run_name = '200812_NB501819_0153_AH7TNJAFX2'
-library_name = 'NORW-' + run_name.split('_')[0]
-
-main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=False)
-
-
-output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200805'
-run_name = '200805_NB501819_0151_AH5WMHAFX2'
-library_name = 'NORW-' + run_name.split('_')[0]
-
-main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
-
-
-output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200729'
-run_name = '200729_NB501819_0149_AH7T7VAFX2'
-library_name = 'NORW-' + run_name.split('_')[0]
-
-main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
-
-
-output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200715'
-run_name = '200715_NB501819_0147_AH5KW5AFX2'
-library_name = 'NORW-' + run_name.split('_')[0]
-
-main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
-
-
-
-output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200708'
-run_name = '200708_NB501819_0146_AH5WJKAFX2'
-library_name = 'NORW-' + run_name.split('_')[0]
-
-main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
-
-
-
-
-# run 1
-output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200418/'
-run_name = '200418_NB501819_0131_AH5TWFAFX2'
-library_name = 'NORW-' + run_name.split('_')[0]
-
-#main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
-        
-# # run 2
-output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200429/'
-run_name = '200429_NB501819_0132_AH5J7GAFX2'
-library_name = 'NORW-' + run_name.split('_')[0]
-
-main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)        
-
-# # run 3
-output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200513/'
-run_name = '200513_NB501819_0135_AH5JCCAFX2'
-library_name = 'NORW-' + run_name.split('_')[0]
-
-main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
-
-# run 4
-output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200519/'
-run_name = '200519_NB501819_0137_AH5YM5AFX2'
-library_name = 'NORW-' + run_name.split('_')[0]
-
-main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
-
-# run 5
-output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200522/'
-run_name = '200522_NB501819_0138_AH722WAFX2'
-library_name = 'NORW-' + run_name.split('_')[0]
-
-main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
-
-# run 6
-output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200602/'
-run_name = '200602_NB501819_0139_AH5W5VAFX2'
-library_name = 'NORW-' + run_name.split('_')[0]
-
-main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
-
-# run 8
-output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200610/'
-run_name = '200610_NB501819_0140_AH5Y2LAFX2'
-library_name = 'NORW-' + run_name.split('_')[0]
-
-main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
-
-output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200617'
-run_name = '200617_NB501819_0142_AH5W3YAFX2'
-library_name = 'NORW-' + run_name.split('_')[0]
-
-main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
-
-output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200624'
-run_name = '200624_NB501819_0143_AH5VV7AFX2'
-library_name = 'NORW-' + run_name.split('_')[0]
-
-main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
-
-output_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20200701'
-run_name = '200701_NB501819_0144_AH5VWMAFX2'
-library_name = 'NORW-' + run_name.split('_')[0]
-
-main(output_dir, run_name, library_name, majora_server, majora_username, majora_token, climb_file_server, climb_username, sheet_name, dry=False, force_sample_only=True)
-
+   
+if __name__ == '__main__':
+    start_time = time.time()
+    log.setLevel(logging.INFO)
+    desc = __doc__.split('\n\n')[0].strip()
+    parser = argparse.ArgumentParser(description=desc,epilog=epi)
+    parser.add_argument ('-v', '--verbose', action='store_true', default=False, help='verbose output')
+    parser.add_argument('--version', action='version', version='%(prog)s ' + meta.__version__)
+    parser.add_argument('datadir', action='store', help='Location of ARTIC pipeline output')
+    parser.add_argument('runname', action='store', help='Sequencing run name, must be unique')
+    parser.add_argument('--gcredentials', action='store', default='credentials.json')
+    parser.add_argument('--sheet_name', action='store', default='SARCOV2-Metadata')
+    parser.add_argument('--majora_token', action='store', default='majora.json')
+    parser.add_argument('--force_sample_only', action='store_true', default=False)
+    parser.add_argument('--maindata', action='store', default='SARCOV2-Metadata')
+    args = parser.parse_args()
+    if args.verbose: 
+        log.setLevel(logging.DEBUG)
+        log.debug( "Executing @ %s\n"  %time.asctime())    
+    main(args)
+    if args.verbose: 
+        log.debug("Ended @ %s\n"  %time.asctime())
+        log.debug('total time in minutes: %d\n' %((time.time() - start_time) / 60.0))

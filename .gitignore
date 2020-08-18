@@ -1,5 +1,9 @@
 coromina/
 temp/
+credentials.json
+majora.json
+.vscode/
+majora_test.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
