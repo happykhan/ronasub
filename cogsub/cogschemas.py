@@ -14,7 +14,7 @@ class Cogmeta(Schema):
     biosample_source_id = fields.Str()
     sample_type_collected = fields.Str()
     swab_site = fields.Str()    
-    is_surveillance = fields.Str()
+    is_surveillance = fields.Str(missing='Y')
     is_icu_patient = fields.Str(validate=validate.OneOf(["Y", "N"]))
 
     @pre_load

@@ -28,7 +28,7 @@ log = logging.getLogger()
 def update_surv_option(args):
     # TODO: Add to options
     # Update surveliannce 
-    client = get_google_session()
+    client = get_google_session(args.gcredentials)
     new_dict, surv_counts = get_surv_metadata(client)
     update_surv_meta(new_dict, surv_counts, client)
 
@@ -68,27 +68,27 @@ if __name__ == '__main__':
     subparsers = parser.add_subparsers(help='commands')
     parser.add_argument ('-v', '--verbose', action='store_true', default=False, help='verbose output')
     parser.add_argument('--version', action='version', version='%(prog)s ' + meta.__version__)
-    parser.add_argument('--gcredentials', action='store', default='credentials.json')
-    parser.add_argument('--maindata', action='store', default='SARCOV2-Metadata')
+    parser.add_argument('--gcredentials', action='store', default='credentials.json', help='Path to Google Sheets API credentials (JSON)')
+    parser.add_argument('--maindata', action='store', default='SARCOV2-Metadata',  help='Name of Master Table in Google sheets')
 
     # CT Parser
     ct_parser = subparsers.add_parser('ct_update', help='Update CT values')
-    ct_parser.add_argument('--ctdata', action='store', default='cov-ct')
+    ct_parser.add_argument('--ctdata', action='store', default='cov-ct',  help='Name of CT table in Google sheets')
     ct_parser.set_defaults(func=update_ct_option)
 
     # Update lineage parser
     lineage_parser = subparsers.add_parser('lineage_update', help='Update Lineage values')
-    lineage_parser.add_argument('--lineagedata', action='store', default='peroba')
+    lineage_parser.add_argument('--lineagedata', action='store', default='peroba',  help='Name of sample lineages table in Google sheets')
     lineage_parser.set_defaults(func=update_lineage_option)
 
     # Export lineage parser
     export_parser = subparsers.add_parser('export_lineage', help='Export Lineage values')
-    export_parser.add_argument('--exportdata', action='store', default='Sample-lineages')
+    export_parser.add_argument('--exportdata', action='store', default='Sample-lineages',  help='Name of sample lineages table in Google sheets')
     export_parser.set_defaults(func=export_lineage_option)
 
     # Update metadata parser
     meta_parser = subparsers.add_parser('update_metadata', help='Update metadata')
-    meta_parser.add_argument('--metadata', action='store', default='COG_UK_Metadata_QIB_Deidentified')
+    meta_parser.add_argument('--metadata', action='store', default='COG_UK_Metadata_QIB_Deidentified',  help='Name of Master Table in Google sheets')
     meta_parser.set_defaults(func=update_metadata_option)
 
     args = parser.parse_args()
