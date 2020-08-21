@@ -10,10 +10,14 @@ def majora_sample_exists(sample_name, username, key, SERVER, dry = False):
     payload = dict(central_sample_id=sample_name, username=username, token=key, client_name='cogsub', client_version='0.1')
     response = requests.post(address, headers = {"Content-Type": "application/json", "charset": "UTF-8"}, json = payload)
     if not dry:
-        response_dict = json.loads(response.content)
-        if response_dict['errors'] == 0:
-            return True
-        else:
+        try:
+            response_dict = json.loads(response.content)
+            if response_dict['errors'] == 0:
+                return True
+            else:
+                return False
+        except json.decoder.JSONDecodeError:
+            logging.error(response)
             return False
     else:
         logging.debug(pprint.pprint(payload))
