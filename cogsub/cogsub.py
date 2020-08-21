@@ -38,9 +38,9 @@ def most_frequent(List):
     occurence_count = Counter(List) 
     return occurence_count.most_common(1)[0][0] 
 
-def get_google_metadata(valid_samples, run_name, library_name, sheet_name):
+def get_google_metadata(valid_samples, run_name, library_name, sheet_name, credentials='credentials.json'):
     scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
+    creds = ServiceAccountCredentials.from_json_keyfile_name(credentials, scope)
     client = gspread.authorize(creds)
 
     sheet = client.open(sheet_name).sheet1
@@ -194,7 +194,7 @@ def main(args, dry=False):
 
     # Connect to google sheet. Fetch & validate metadata
     logging.info(f'Found {len(found_samples)} samples')
-    records_to_upload, library_to_upload = get_google_metadata(found_samples, run_name, library_name, sheet_name=sheet_name)
+    records_to_upload, library_to_upload = get_google_metadata(found_samples, run_name, library_name, sheet_name=sheet_name, credentials=args.gcredentials)
 
     # Connect to majora cog and sync metadata. 
     logging.info(f'Submitting biosamples to majora ' + run_name)
