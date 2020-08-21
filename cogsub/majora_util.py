@@ -1,4 +1,9 @@
-
+import requests
+import json
+from cogschemas import Cogmeta
+import pprint
+import logging
+from marshmallow import EXCLUDE
 
 def majora_sample_exists(sample_name, username, key, SERVER, dry = False):
     address = SERVER + '/api/v2/artifact/biosample/get/'
@@ -84,8 +89,8 @@ def majora_add_library(library_list, username, key, SERVER, dry = True):
             return True
         else:
             for x in response_dict['ignored']:
-                if not majora_sample_exists(x , majora_username, majora_token, majora_server):
-                    pass
+              #  if not majora_sample_exists(x , majora_username, majora_token, majora_server):
+                pass
                    # print(x + ' Does not exists')
                 
             return False

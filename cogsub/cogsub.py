@@ -40,7 +40,7 @@ def most_frequent(List):
 
 def get_google_metadata(valid_samples, run_name, library_name, sheet_name):
     scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
-    creds = ServiceAccountCredentials.from_json_keyfile_name('cogsub/credentials.json', scope)
+    creds = ServiceAccountCredentials.from_json_keyfile_name('credentials.json', scope)
     client = gspread.authorize(creds)
 
     sheet = client.open(sheet_name).sheet1
@@ -142,7 +142,7 @@ def main(args, dry=False):
     climb_username = config['climb_username'] 
     sheet_name = args.sheet_name
     force_sample_only = args.force_sample_only
-    logging.debug(f'Dry run is {dry}')
+    logging.info(f'Dry run is {dry}')
     output_dir_bams = os.path.join(output_dir, 'ncovIllumina_sequenceAnalysis_readMapping')
     output_dir_consensus = os.path.join(output_dir, 'ncovIllumina_sequenceAnalysis_makeConsensus')
     found_samples = []
@@ -192,11 +192,11 @@ def main(args, dry=False):
                 logging.error('Multiple fasta file!')
 
     # Connect to google sheet. Fetch & validate metadata
-    logging.debug(f'Found {len(found_samples)} samples')
+    logging.info(f'Found {len(found_samples)} samples')
     records_to_upload, library_to_upload = get_google_metadata(found_samples, run_name, library_name, sheet_name=sheet_name)
 
     # Connect to majora cog and sync metadata. 
-    logging.debug(f'Submitting biosamples to majora ' + run_name)
+    logging.info(f'Submitting biosamples to majora ' + run_name)
     samples_dont_exist = [] 
     if force_sample_only:
         majora_add_samples(records_to_upload, majora_username, majora_token, majora_server, dry)
@@ -205,8 +205,8 @@ def main(args, dry=False):
             if not majora_sample_exists(biosample['central_sample_id'], majora_username, majora_token, majora_server, dry=False):
                 samples_dont_exist.append(biosample['central_sample_id'] )
         if majora_add_samples(records_to_upload, majora_username, majora_token, majora_server, dry):
-            logging.debug(f'Submitted biosamples to majora')
-            logging.debug(f'Submitting library and run to majora')
+            logging.info(f'Submitted biosamples to majora')
+            logging.info(f'Submitting library and run to majora')
             for lib_val in library_to_upload.values():
                 clean_lib_val = lib_val.copy()
                 if len(clean_lib_val['biosamples']) > 0 : 
