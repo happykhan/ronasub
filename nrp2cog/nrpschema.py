@@ -39,6 +39,7 @@ class BioMeta(Schema):
     adm2_private = fields.Str(data_key="Outer Postcode", validate=validate.Regexp(postcode_regex))
     date_sequenced = fields.Str()
     repeat_sample_id = fields.Str(data_key="Repeat Sample ID")
+    is_surveillance = fields.Str(missing='Y')
     is_icu_patient = fields.Str(data_key="ICU admission", validate=validate.OneOf(['Y','N', 'Unknown']))
    # ct_value = fields.Str(data_key='PCR Ct value')
 
