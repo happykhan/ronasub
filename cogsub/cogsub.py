@@ -148,6 +148,7 @@ def main(args, dry=False):
     found_samples = []
     climb_server_conn = ClimbFiles(climb_file_server, climb_username)
     # Does the run dir exist? 
+    climb_server_conn.create_climb_dir('upload')
     climb_run_directory = os.path.join('upload', run_name)
     climb_server_conn.create_climb_dir(climb_run_directory)
     # OPTIONAL. fetch upload list - in case only a subsample of results should be uploaded. 
