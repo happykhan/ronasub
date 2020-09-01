@@ -94,6 +94,9 @@ def get_google_metadata(valid_samples, run_name, library_name, sheet_name, crede
                 up_record['biosample_source_id'] = up_record['patient_group']
             up_record['metrics']['ct']['records']['1'] = dict(ct_value=ct_values.get('ct_1_ct_value', 0), test_kit=ct_values.get('ct_1_test_kit'), test_platform=ct_values.get('ct_1_test_platform'), test_target=ct_values.get('ct_1_test_target'))
             up_record['metrics']['ct']['records']['2'] = dict(ct_value=ct_values.get('ct_2_ct_value', 0), test_kit=ct_values.get('ct_2_test_kit'), test_platform=ct_values.get('ct_2_test_platform'), test_target=ct_values.get('ct_2_test_target'))
+            if len(x.get('epi_cluster', '')) > 3:
+                up_record['metadata'] = dict(epi=dict(cluster=x.get('epi_cluster')))
+
             records_to_upload.append(up_record)
             run_data = RunMeta(unknown = EXCLUDE).dump(x)
             library_sample_data = LibraryBiosampleMeta(unknown = EXCLUDE).dump(x)
