@@ -38,7 +38,7 @@ def most_frequent(List):
     occurence_count = Counter(List) 
     return occurence_count.most_common(1)[0][0] 
 
-def get_google_metadata(valid_samples, run_name, library_name, sheet_name, credentials='credentials.json'):
+def get_google_metadata(valid_samples, run_name, library_name, sheet_name, credentials='credentials.json', ont=False):
     scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
     creds = ServiceAccountCredentials.from_json_keyfile_name(credentials, scope)
     client = gspread.authorize(creds)
@@ -129,37 +129,8 @@ def load_config(config="majora.json"):
     config_dict = json.load(open(config))
     return config_dict
 
-def main(args, dry=False):
-    # Load from config
-    config = load_config(args.majora_token)
-    output_dir = args.datadir
-    run_name = args.runname
-    library_name = 'NORW-' + run_name.split('_')[0]
-    majora_server = config['majora_server']
-    majora_username = config['majora_username']
-    majora_token = config['majora_token']
-    climb_file_server = config['climb_file_server']
-    climb_username = config['climb_username'] 
-    sheet_name = args.sheet_name
-    force_sample_only = args.force_sample_only
-    logging.info(f'Dry run is {dry}')
-    output_dir_bams = os.path.join(output_dir, 'ncovIllumina_sequenceAnalysis_readMapping')
-    output_dir_consensus = os.path.join(output_dir, 'ncovIllumina_sequenceAnalysis_makeConsensus')
+def read_illumina_dirs(output_dir_bams, output_dir_consensus, uploadlist, blacklist, climb_server_conn, climb_run_directory):
     found_samples = []
-    climb_server_conn = ClimbFiles(climb_file_server, climb_username)
-    # Does the run dir exist? 
-    climb_server_conn.create_climb_dir('upload')
-    climb_run_directory = os.path.join('upload', run_name)
-    climb_server_conn.create_climb_dir(climb_run_directory)
-    # OPTIONAL. fetch upload list - in case only a subsample of results should be uploaded. 
-    output_dir_uploadlist = os.path.join(output_dir, 'uploadlist')
-    output_dir_blacklist = os.path.join(output_dir, 'blacklist')
-    uploadlist = None
-    blacklist = None
-    if os.path.exists(output_dir_uploadlist):
-        uploadlist = [x.strip() for x in open(output_dir_uploadlist).readlines()]
-    if os.path.exists(output_dir_blacklist):
-        blacklist = [x.strip() for x in open(output_dir_blacklist).readlines()]
     for x in os.listdir(output_dir_bams):
         if x.startswith('E') and x.endswith('sorted.bam'):
             sample_name = x.split('_')[0]
@@ -170,11 +141,6 @@ def main(args, dry=False):
                 if 'NORW-' + sample_name in blacklist:
                     logging.info('Skipping ' + sample_name)
                     continue
-            sample_name = x.split('_')[0]
-            #sample_folder = os.path.join(run_path , 'NORW-' + sample_name)
-            #if os.path.exists(sample_folder):
-            #    os.mkdir(sample_folder)
-            sample_name = x.split('_')[0]
             bam_file = os.path.join(output_dir_bams, x)
             
             # Locate fasta file 
@@ -191,10 +157,81 @@ def main(args, dry=False):
                 logging.error('No fasta file!')
             else:
                 logging.error('Multiple fasta file!')
+    return found_samples
 
+import re 
+def read_ont_dirs(output_dir_bams, output_dir_consensus, uploadlist, blacklist, climb_server_conn, climb_run_directory):
+    found_samples = []
+    for x in os.listdir(output_dir_bams):
+        valid_bam_match = re.match('(NORW-\w{5}).sorted.bam', x)
+
+        if valid_bam_match:
+            sample_name = valid_bam_match.group(1)
+            if uploadlist: 
+                if not sample_name in uploadlist:
+                    continue
+            if blacklist:
+                if sample_name in blacklist:
+                    logging.info('Skipping ' + sample_name)
+                    continue
+            bam_file = os.path.join(output_dir_bams, x)
+            
+            # Locate fasta file 
+            fasta_file = [x for x in os.listdir(output_dir_consensus) if x == f'{sample_name}.consensus.fasta' ]
+            if len(fasta_file) == 1:
+                fa_file_path = os.path.join(output_dir_consensus, fasta_file[0])
+                # TODO make sure the sample name is valid 
+                climb_sample_directory = os.path.join(climb_run_directory, sample_name)
+                climb_server_conn.create_climb_dir(climb_sample_directory)
+                climb_server_conn.put_file(fa_file_path, climb_sample_directory)
+                climb_server_conn.put_file(bam_file, climb_sample_directory)
+                found_samples.append(sample_name)
+            elif len(fasta_file) == 0:
+                logging.error('No fasta file!')
+            else:
+                logging.error('Multiple fasta file!')
+    return found_samples    
+
+def main(args, dry=False):
+    # Load from config
+    config = load_config(args.majora_token)
+    output_dir = args.datadir
+    run_name = args.runname
+    library_name = 'NORW-' + run_name.split('_')[0]
+    majora_server = config['majora_server']
+    majora_username = config['majora_username']
+    majora_token = config['majora_token']
+    climb_file_server = config['climb_file_server']
+    climb_username = config['climb_username'] 
+    sheet_name = args.sheet_name
+    force_sample_only = args.force_sample_only
+    logging.info(f'Dry run is {dry}')
+    output_dir_bams = os.path.join(output_dir, 'ncovIllumina_sequenceAnalysis_readMapping')
+    output_dir_consensus = os.path.join(output_dir, 'ncovIllumina_sequenceAnalysis_makeConsensus')
+    if args.ont:
+        output_dir_bams = os.path.join(output_dir, "articNcovNanopore_sequenceAnalysisMedaka_articMinIONMedaka")
+        output_dir_consensus = os.path.join(output_dir, "articNcovNanopore_sequenceAnalysisMedaka_articMinIONMedaka")
+    climb_server_conn = ClimbFiles(climb_file_server, climb_username)
+    # Does the run dir exist? 
+    climb_server_conn.create_climb_dir('upload')
+    climb_run_directory = os.path.join('upload', run_name)
+    climb_server_conn.create_climb_dir(climb_run_directory)
+    # OPTIONAL. fetch upload list - in case only a subsample of results should be uploaded. 
+    output_dir_uploadlist = os.path.join(output_dir, 'uploadlist')
+    output_dir_blacklist = os.path.join(output_dir, 'blacklist')
+    uploadlist = None
+    blacklist = None
+    if os.path.exists(output_dir_uploadlist):
+        uploadlist = [x.strip() for x in open(output_dir_uploadlist).readlines()]
+    if os.path.exists(output_dir_blacklist):
+        blacklist = [x.strip() for x in open(output_dir_blacklist).readlines()]
+    if args.ont:
+        found_samples = read_ont_dirs(output_dir_bams, output_dir_consensus, uploadlist, blacklist, climb_server_conn, climb_run_directory)
+    else:
+        found_samples = read_illumina_dirs(output_dir_bams, output_dir_consensus, uploadlist, blacklist, climb_server_conn, climb_run_directory)
     # Connect to google sheet. Fetch & validate metadata
     logging.info(f'Found {len(found_samples)} samples')
-    records_to_upload, library_to_upload = get_google_metadata(found_samples, run_name, library_name, sheet_name=sheet_name, credentials=args.gcredentials)
+    records_to_upload, library_to_upload = get_google_metadata(found_samples, run_name, library_name, sheet_name=sheet_name, credentials=args.gcredentials, ont=args.ont)
 
     # Connect to majora cog and sync metadata. 
     logging.info(f'Submitting biosamples to majora ' + run_name)
@@ -232,6 +269,7 @@ if __name__ == '__main__':
     parser.add_argument('--sheet_name', action='store', default='SARCOV2-Metadata', help='Name of Master Table in Google sheets')
     parser.add_argument('--majora_token', action='store', default='majora.json', help='Path to MAJORA COG API credentials (JSON)')
     parser.add_argument('--force_sample_only', action='store_true', default=False, help='Just update sample metadata (do not submit library or sequencing info)')
+    parser.add_argument('--ont', action='store_true', default=False, help='Is the output directory from nanopore')
     args = parser.parse_args()
     if args.verbose: 
         log.setLevel(logging.DEBUG)
