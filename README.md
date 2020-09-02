@@ -5,6 +5,7 @@ Should include:
 
 * COG submission script.
 * ENA submission script.
+* Rapid submission script (Lightsub)
 * NRP Metadata conversion to master table.
 
 # Installation
@@ -46,7 +47,7 @@ COGSUB submits the metadata and sequences to COG UK.
 ## Configuration for COGSUB
 You will need the google sheet credentials (as above). You will also need to set up a config JSON file for COG/Majora (see Majora_template.json for an example)
 
-# LIGHTSUB 
+## LIGHTSUB 
 LIGHTSUB submits the rapid sequences to COG UK. The process to specify an output data directory, which is uploaded to COG. And then use MAJORA API client to link these files in the database. 
 
 USAGE:
@@ -55,7 +56,7 @@ python cogsub/lightsub.py my_data_dir my_run_name --ont
 ```
 Then run the ```library.sh``` and ```run.sh```
 
-## Configuration for LIGHTSUB
+### Configuration for LIGHTSUB
 You will need the majora client installed. 
 
 ```
