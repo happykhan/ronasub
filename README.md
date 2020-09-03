@@ -50,8 +50,8 @@ You will need the google sheet credentials (as above). You will also need to set
 ## LIGHTSUB 
 LIGHTSUB submits the rapid sequences to COG UK. The process to specify an output data directory, which is uploaded to COG. And then use MAJORA API client to link these files in the database. 
 
-USAGE:
 ```
+USAGE:
 python cogsub/lightsub.py my_data_dir my_run_name --ont 
 ```
 Then run the ```library.sh``` and ```run.sh```
