@@ -24,6 +24,7 @@ The internal modules include:
 * lineage_update: Update Linaege values
 * export_lineage: Export Linaege values
 * update_metadata: Update metadata
+* export_to_server: Export values to external server
 
 For COG and other database submission, the most important modules are update_metadata and ct_update. 
 
