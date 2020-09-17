@@ -3,6 +3,7 @@ import logging
 
 def update_pub_info(client, sheet_name='SARCOV2-Metadata', out_sheet_name='Sample-lineages'):
     sheet = client.open(sheet_name).sheet1
+    row_position = sheet.col_values(1)
     all_values = sheet.get_all_records()
     load = { }
     for x in all_values:
@@ -17,10 +18,16 @@ def update_pub_info(client, sheet_name='SARCOV2-Metadata', out_sheet_name='Sampl
     sheet = client.open(out_sheet_name).sheet1
     column_position = sheet.row_values(1)
     row_position = sheet.col_values(1)      
-    all_values = sheet.get_all_records()
-    cells_to_update = [] 
+    sheet.resize(len(row_position))
 
-    logging.info('ADD ROWS TO REPORT\n' +  '\n'.join(list(set(load.keys() - set(row_position)))))
+    cells_to_update = [] 
+    rows_to_add = list(set(load.keys() - set(row_position)))
+    if rows_to_add:
+        logging.info('ADD ROWS TO REPORT\n' +  '\n'.join(rows_to_add))
+        values = [[x] for x in rows_to_add]
+        sheet.append_rows(values)
+    all_values = sheet.get_all_records()
+
     for x in all_values:
         if load.get(x['sample_id']):
             for id, value in load.get(x['sample_id']).items(): 

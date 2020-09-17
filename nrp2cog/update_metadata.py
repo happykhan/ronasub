@@ -39,7 +39,13 @@ def update_our_meta(new_data, client, sheet_name='SARCOV2-Metadata', force_updat
         print('Following records are duplicated in master sheet:' + ','.join(duplicates))
     missing_rows_names = list(set([x['central_sample_id'] for x in new_data.values()]) - set(row_position) )
     if missing_rows_names:
-        print('PLEASE ADD THESE ROWS\n' + '\n'.join(missing_rows_names))
+        print('adding Missing ROWS\n' + '\n'.join(missing_rows_names))
+        sheet.resize(len(row_position))
+        values = [[x] for x in missing_rows_names]
+        sheet.append_rows(values)
+        all_values = sheet.get_all_records()
+        column_position = sheet.row_values(1)
+        row_position = sheet.col_values(1)        
     for x in all_values:
         bio_metadata = new_data.get(x['central_sample_id'])
         if bio_metadata:
