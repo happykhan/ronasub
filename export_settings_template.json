@@ -1,0 +1,9 @@
+
+{
+    "export_server": "",
+    "export_username": "",
+    "export_port": "22",
+    "temp_dir": "temp_nrp2cog",
+    "key_location": "export.pem",
+    "sheet_name": ""
+}

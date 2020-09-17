@@ -1,9 +1,12 @@
 coromina/
 temp/
+majora_scripts
 credentials.json
 majora.json
+*.pem
 .vscode/
 majora_test.json
+temp*/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

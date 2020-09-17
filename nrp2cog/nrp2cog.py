@@ -15,10 +15,11 @@ import meta
 from nrp_util import get_google_session
 from update_surv import get_surv_metadata, update_surv_meta
 from export_lineage import update_pub_info
+from export_phe import export_phe
 from update_lineage import get_lineage_metadata, update_lineage_meta
 from ct_update import get_ct_metadata, update_ct_meta
 from update_metadata import get_bio_metadata, update_our_meta, update_patient_id
-
+import json
 
 epi = "Licence: " + meta.__licence__ +  " by " +meta.__author__ + " <" +meta.__author_email__ + ">"
 logging.basicConfig()
@@ -38,6 +39,12 @@ def export_lineage_option(args):
     # Build def info:
     client = get_google_session(args.gcredentials)
     update_pub_info(client)
+
+def export_phe_option(args):    
+    client = get_google_session(args.gcredentials)
+    config = json.load(open(args.config))
+    export_phe(client, config['temp_dir'], config['sheet_name'], config['export_server'], config['export_username'], config['key_location'])
+
 
 def update_lineage_option(args):
 
@@ -85,6 +92,11 @@ if __name__ == '__main__':
     export_parser = subparsers.add_parser('export_lineage', help='Export Lineage values')
     export_parser.add_argument('--exportdata', action='store', default='Sample-lineages',  help='Name of sample lineages table in Google sheets')
     export_parser.set_defaults(func=export_lineage_option)
+
+    # Export phe parser
+    export_phe_parser = subparsers.add_parser('export_phe', help='Export values to phe')
+    export_phe_parser.add_argument('--config', action='store', default='export_settings.json',  help='Config JSON file')
+    export_phe_parser.set_defaults(func=export_phe_option)    
 
     # Update metadata parser
     meta_parser = subparsers.add_parser('update_metadata', help='Update metadata')
