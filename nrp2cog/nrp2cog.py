@@ -94,7 +94,7 @@ if __name__ == '__main__':
     export_parser.set_defaults(func=export_lineage_option)
 
     # Export phe parser
-    export_phe_parser = subparsers.add_parser('export_phe', help='Export values to phe')
+    export_phe_parser = subparsers.add_parser('export_to_server', help='Export values to external server')
     export_phe_parser.add_argument('--config', action='store', default='export_settings.json',  help='Config JSON file')
     export_phe_parser.set_defaults(func=export_phe_option)    
 
