@@ -28,6 +28,7 @@ from cogschemas import Cogmeta, CtMeta, RunMeta, LibraryBiosampleMeta, LibraryHe
 from climbfiles import ClimbFiles
 from majora_util import majora_sample_exists, majora_add_samples, majora_add_run, majora_add_library
 from collections import Counter
+import re 
 
 epi = "Licence: " + meta.__licence__ +  " by " +meta.__author__ + " <" +meta.__author_email__ + ">"
 logging.basicConfig()
@@ -55,9 +56,9 @@ def get_google_metadata(valid_samples, run_name, library_name, sheet_name, crede
     blank_cells_to_update = []
     force = False
     library_names = []
-    in_run_but_not_in_sheet = list(set(valid_samples) - set([x['central_sample_id'] for x in all_values]))
+    in_run_but_not_in_sheet = list(set(valid_samples) - set(row_position))
     if in_run_but_not_in_sheet:
-        logging.error('missing records in metadata sheet' + '\n'.join(in_run_but_not_in_sheet))
+        logging.error('missing records in metadata sheet\n' + '\n'.join(in_run_but_not_in_sheet))
     for x in all_values:
         
         if x.get('central_sample_id', 'burnburnburn') in valid_samples:
@@ -135,8 +136,10 @@ def load_config(config="majora.json"):
 def read_illumina_dirs(output_dir_bams, output_dir_consensus, uploadlist, blacklist, climb_server_conn, climb_run_directory):
     found_samples = []
     for x in os.listdir(output_dir_bams):
-        if x.startswith('E') and x.endswith('sorted.bam'):
+        if x.startswith('NORW') and x.endswith('sorted.bam'):
             sample_name = x.split('_')[0]
+            if sample_name.endswith('crude-prep'):
+                continue
             if uploadlist: 
                 if not 'NORW-' + sample_name in uploadlist:
                     continue
@@ -151,18 +154,17 @@ def read_illumina_dirs(output_dir_bams, output_dir_consensus, uploadlist, blackl
             if len(fasta_file) == 1:
                 fa_file_path = os.path.join(output_dir_consensus, fasta_file[0])
                 # TODO make sure the sample name is valid 
-                climb_sample_directory = os.path.join(climb_run_directory, 'NORW-' + sample_name)
+                climb_sample_directory = os.path.join(climb_run_directory, sample_name)
                 climb_server_conn.create_climb_dir(climb_sample_directory)
                 climb_server_conn.put_file(fa_file_path, climb_sample_directory)
                 climb_server_conn.put_file(bam_file, climb_sample_directory)
-                found_samples.append('NORW-' + sample_name)
+                found_samples.append(sample_name)
             elif len(fasta_file) == 0:
                 logging.error('No fasta file!')
             else:
                 logging.error('Multiple fasta file!')
     return found_samples
 
-import re 
 def read_ont_dirs(output_dir_bams, output_dir_consensus, uploadlist, blacklist, climb_server_conn, climb_run_directory):
     found_samples = []
     for x in os.listdir(output_dir_bams):
@@ -209,7 +211,7 @@ def main(args, dry=False):
     sheet_name = args.sheet_name
     force_sample_only = args.force_sample_only
     logging.info(f'Dry run is {dry}')
-    output_dir_bams = os.path.join(output_dir, 'ncovIllumina_sequenceAnalysis_readMapping')
+    output_dir_bams = os.path.join(output_dir, 'ncovIllumina_sequenceAnalysis_trimPrimerSequences')
     output_dir_consensus = os.path.join(output_dir, 'ncovIllumina_sequenceAnalysis_makeConsensus')
     if args.ont:
         output_dir_bams = os.path.join(output_dir, "articNcovNanopore_sequenceAnalysisMedaka_articMinIONMedaka")
