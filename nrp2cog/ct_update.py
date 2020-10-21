@@ -2,9 +2,8 @@
 from nrpschema import CtMeta
 import collections
 from gspread.models import Cell
-from marshmallow import EXCLUDE
+from marshmallow import EXCLUDE, fields, Schema, pre_load
 import logging
-
 
 def get_ct_metadata(client, sheet_name='cov-ct'):
     sheet = client.open(sheet_name).sheet1
@@ -34,71 +33,13 @@ def update_ct_meta(new_data, client, sheet_name='SARCOV2-Metadata'):
     for x in all_values:
         ct_metadata = new_data.get(x['central_sample_id'])
         if ct_metadata:
-            if ct_metadata.get('ct_1_ct_value'):
-                if[x['ct_1_ct_value']] != ct_metadata['ct_1_ct_value']:
+            for k, v in ct_metadata.items():
+                if k in column_position:
                     cells_to_update.append(Cell( 
                         row=row_position.index(x['central_sample_id'])+1,
-                        col=column_position.index('ct_1_ct_value')+1,
-                        value=ct_metadata['ct_1_ct_value']))
-                if ct_metadata.get('ct_1_test_platform') == "AusDiagnostics":
-                    cells_to_update.append(Cell(
-                        row=row_position.index(x['central_sample_id'])+1,
-                        col=column_position.index('ct_1_test_platform')+1,
-                        value='AUSDIAGNOSTICS'))
-                    cells_to_update.append(Cell(
-                        row=row_position.index(x['central_sample_id'])+1,
-                        col=column_position.index('ct_1_test_kit')+1,
-                        value='AUSDIAGNOSTICS'))
-                    cells_to_update.append(Cell(
-                        row=row_position.index(x['central_sample_id'])+1,
-                        col=column_position.index('ct_1_test_target')+1,
-                        value='ORF1AB'))
-                if ct_metadata.get('ct_1_test_platform') == "Roche Cobas":
-                    cells_to_update.append(Cell(
-                        row=row_position.index(x['central_sample_id'])+1,
-                        col=column_position.index('ct_1_test_platform')+1,
-                        value='ROCHE_COBAS'))
-                    cells_to_update.append(Cell(
-                        row=row_position.index(x['central_sample_id'])+1,
-                        col=column_position.index('ct_1_test_kit')+1,
-                        value='ROCHE'))
-                    cells_to_update.append(Cell(
-                        row=row_position.index(x['central_sample_id'])+1,
-                        col=column_position.index('ct_1_test_target')+1,
-                        value='RDRP'))                    
-
-            if ct_metadata.get('ct_2_ct_value'):
-                if[x['ct_2_ct_value']] != ct_metadata['ct_2_ct_value']:
-                    cells_to_update.append(Cell(
-                        row=row_position.index(x['central_sample_id'])+1,
-                        col=column_position.index('ct_2_ct_value')+1,
-                        value=ct_metadata['ct_2_ct_value']))
-                if ct_metadata.get('ct_2_test_platform') == "AusDiagnostics":
-                    cells_to_update.append(Cell(
-                        row=row_position.index(x['central_sample_id'])+1,
-                        col=column_position.index('ct_2_test_platform')+1,
-                        value='AUSDIAGNOSTICS'))
-                    cells_to_update.append(Cell(
-                        row=row_position.index(x['central_sample_id'])+1,
-                        col=column_position.index('ct_2_test_kit')+1,
-                        value='AUSDIAGNOSTICS'))
-                    cells_to_update.append(Cell(
-                        row=row_position.index(x['central_sample_id'])+1,
-                        col=column_position.index('ct_2_test_target')+1,
-                        value='ORF8'))                    
-                if ct_metadata.get('ct_2_test_platform') == "Roche Cobas":
-                    cells_to_update.append(Cell(
-                        row=row_position.index(x['central_sample_id'])+1,
-                        col=column_position.index('ct_2_test_platform')+1,
-                        value='ROCHE_COBAS'))
-                    cells_to_update.append(Cell(
-                        row=row_position.index(x['central_sample_id'])+1,
-                        col=column_position.index('ct_2_test_kit')+1,
-                        value='ROCHE'))
-                    cells_to_update.append(Cell(
-                        row=row_position.index(x['central_sample_id'])+1,
-                        col=column_position.index('ct_2_test_target')+1,
-                        value='E'))                                        
+                        col=column_position.index(k)+1,
+                        value=v))                   
+                                                   
         else:
             logging.info('NO CT METADATA  FOR ' + x['central_sample_id'])
     if cells_to_update:

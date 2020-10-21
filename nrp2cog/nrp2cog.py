@@ -20,6 +20,7 @@ from update_lineage import get_lineage_metadata, update_lineage_meta
 from ct_update import get_ct_metadata, update_ct_meta
 from update_metadata import get_bio_metadata, update_our_meta, update_patient_id
 import json
+from update_civet import get_civet_metadata, update_civet_meta 
 
 epi = "Licence: " + meta.__licence__ +  " by " +meta.__author__ + " <" +meta.__author_email__ + ">"
 logging.basicConfig()
@@ -66,6 +67,12 @@ def update_ct_option(args):
     new_dict = get_ct_metadata(client, sheet_name=args.ctdata)
     update_ct_meta(new_dict, client, sheet_name=args.maindata)
 
+def update_civet_option(args):
+
+    client = get_google_session(args.gcredentials)
+    new_dict = get_civet_metadata(args.rundir)
+    if new_dict:
+        update_civet_meta(new_dict, client, sheet_name=args.maindata)
     
 if __name__ == '__main__':
     start_time = time.time()
@@ -79,12 +86,12 @@ if __name__ == '__main__':
     parser.add_argument('--maindata', action='store', default='SARCOV2-Metadata',  help='Name of Master Table in Google sheets')
 
     # CT Parser
-    ct_parser = subparsers.add_parser('ct_update', help='Update CT values')
+    ct_parser = subparsers.add_parser('update_ct', help='Update CT values')
     ct_parser.add_argument('--ctdata', action='store', default='cov-ct',  help='Name of CT table in Google sheets')
     ct_parser.set_defaults(func=update_ct_option)
 
     # Update lineage parser
-    lineage_parser = subparsers.add_parser('lineage_update', help='Update Lineage values')
+    lineage_parser = subparsers.add_parser('update_lineage', help='Update Lineage values')
     lineage_parser.add_argument('--lineagedata', action='store', default='peroba',  help='Name of sample lineages table in Google sheets')
     lineage_parser.set_defaults(func=update_lineage_option)
 
@@ -102,6 +109,11 @@ if __name__ == '__main__':
     meta_parser = subparsers.add_parser('update_metadata', help='Update metadata')
     meta_parser.add_argument('--metadata', action='store', default='COG_UK_Metadata_QIB_Deidentified',  help='Name of Master Table in Google sheets')
     meta_parser.set_defaults(func=update_metadata_option)
+
+    # Update civet parser
+    civet_parser = subparsers.add_parser('update_civet', help='Update civet info')
+    civet_parser.add_argument('rundir', action='store', help='Directory with run data')
+    civet_parser.set_defaults(func=update_civet_option)    
 
     args = parser.parse_args()
     if args.verbose: 

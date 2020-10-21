@@ -25,8 +25,9 @@ class PheFiles():
         remote_file_path = os.path.join(path, os.path.basename(filename))
         if overwrite:
             logging.debug(f'sending file {filename}')
+            self.sftp.remove(remote_file_path)
             self.sftp.put(filename, remote_file_path) 
-        else:            
+        else:
             try:
                 self.sftp.stat(remote_file_path)
             except FileNotFoundError:

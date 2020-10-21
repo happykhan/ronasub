@@ -112,23 +112,85 @@ class BioMeta(Schema):
         
 
 class CtMeta(Schema):
-    ct_1_ct_value = fields.Float()
-    ct_1_test_kit = fields.Str()
-    ct_1_test_platform = fields.Str()
-    ct_1_test_target = fields.Str()
-    ct_2_ct_value = fields.Float()
-    ct_2_test_kit = fields.Str()
-    ct_2_test_platform = fields.Str()
-    ct_2_test_target = fields.Str()    
-
+    ct_1_ct_value = fields.Float(validate=validate.Range(min=0, max=60))
+    ct_1_test_kit = fields.Str(validate=validate.OneOf(["ALTONA", "ABBOTT", "AUSDIAGNOSTICS", "BOSPHORE", "ROCHE", "INHOUSE", "SEEGENE", "VIASURE", "BD", "XPERT"]))
+    ct_1_test_platform = fields.Str(validate=validate.OneOf(["ALTOSTAR_AM16", "ABBOTT_M2000", "APPLIED_BIO_7500", "ROCHE_COBAS", "ROCHE_FLOW", "ROCHE_LIGHTCYCLER", "ELITE_INGENIUS", "CEPHEID_XPERT", "QIASTAT_DX", "AUSDIAGNOSTICS", "INHOUSE", "ALTONA", "PANTHER", "SEEGENE_NIMBUS", "QIAGEN_ROTORGENE", "BD_MAX"]))
+    ct_1_test_target = fields.Str(validate=validate.OneOf(["E", "N", "S", "RDRP", "ORF1AB", "ORF8", 'RDRP+N']))
+    ct_2_ct_value = fields.Float(validate=validate.Range(min=0, max=60))
+    ct_2_test_kit = fields.Str(validate=validate.OneOf(["ALTONA", "ABBOTT", "AUSDIAGNOSTICS", "BOSPHORE", "ROCHE", "INHOUSE", "SEEGENE", "VIASURE", "BD", "XPERT"]))
+    ct_2_test_platform = fields.Str(validate=validate.OneOf(["ALTOSTAR_AM16", "ABBOTT_M2000", "APPLIED_BIO_7500", "ROCHE_COBAS", "ROCHE_FLOW", "ROCHE_LIGHTCYCLER", "ELITE_INGENIUS", "CEPHEID_XPERT", "QIASTAT_DX", "AUSDIAGNOSTICS", "INHOUSE", "ALTONA", "PANTHER", "SEEGENE_NIMBUS", "QIAGEN_ROTORGENE", "BD_MAX"]))
+    ct_2_test_target = fields.Str(validate=validate.OneOf(["E", "N", "S", "RDRP", "ORF1AB", "ORF8", "RDRP+N"]))
 
     @pre_load
     def clean_up(self, in_data, **kwargs):
         for k,v in dict(in_data).items():
-            if v in ['', 'to check',  '#VALUE!', '-', 'N/A'] :
-                in_data.pop(k)        
+            if v in ['', 'To check',  '#VALUE!', '-', 'N/A', "NEGATIVE", "negative"] :
+                in_data.pop(k)       
             elif isinstance(v, str):
-                    in_data[k] = v.strip()
+                    in_data[k] = v.upper().strip()
+        if in_data.get('ct_1_test_platform'):
+            if in_data.get('ct_1_test_platform').upper() == 'HOLOGIC PANTHER':
+                in_data['ct_1_test_platform'] = 'PANTHER'               
+            if in_data.get('ct_1_test_platform').upper() == 'ROCHE COBAS 8800':
+                in_data['ct_1_test_platform'] = 'ROCHE_COBAS'   
+            if in_data.get('ct_1_test_platform').upper() == 'APPLIED BIOSYSTEMS QUANTSTUDIO 5':
+                in_data['ct_1_test_platform'] = 'APPLIED_BIO_7500'        
+            if in_data.get('ct_1_test_platform').upper() == 'ROCHE LIGHTCYCLER LC480II':
+                in_data['ct_1_test_platform'] = 'ROCHE_LIGHTCYCLER'           
+            if in_data.get('ct_1_test_platform').upper() == 'CEPHEID GENEXPERT':
+                in_data['ct_1_test_platform'] = 'CEPHEID_XPERT'                                                                         
+        if in_data.get('ct_2_test_platform'):               
+            if in_data.get('ct_2_test_platform').upper() == 'HOLOGIC PANTHER':
+                in_data['ct_2_test_platform'] = 'PANTHER'                            
+            if in_data.get('ct_2_test_platform').upper() == 'ROCHE COBAS 8800':
+                in_data['ct_2_test_platform'] = 'ROCHE_COBAS'            
+            if in_data.get('ct_2_test_platform').upper() == 'APPLIED BIOSYSTEMS QUANTSTUDIO 5':
+                in_data['ct_2_test_platform'] = 'APPLIED_BIO_7500'                     
+            if in_data.get('ct_2_test_platform').upper() == 'ROCHE LIGHTCYCLER LC480II':
+                in_data['ct_2_test_platform'] = 'ROCHE_LIGHTCYCLER'
+            if in_data.get('ct_2_test_platform').upper() == 'CEPHEID GENEXPERT':
+                in_data['ct_2_test_platform'] = 'CEPHEID_XPERT'                
+
+        if in_data.get('ct_2_test_kit'):
+            if in_data['ct_2_test_kit'] == 'SARS-COV2, INFLUENZA + RSA (AUXDX) KIT':
+                in_data['ct_2_test_kit'] = 'AUSDIAGNOSTICS'
+            if in_data['ct_2_test_kit'] == 'REAL STAR SARS-COV-2 RT-PCR VERSION 1':
+                in_data['ct_2_test_kit'] = 'ALTONA'              
+            if in_data['ct_2_test_kit'] in ['SARS-COV2 TEST', 'PANTHER FUSION® SARS-COV-2 ASSAY', '2019-NCOV CDC ASSAY']:
+                in_data['ct_2_test_kit'] = 'ROCHE'  
+            if in_data['ct_2_test_kit'] in ['XPERT® XPRESS SARS-COV-2 (CEPHEID) KIT']:
+                in_data['ct_2_test_kit'] = 'XPERT'                                                                                     
+        if in_data.get('ct_1_test_kit'):
+            if in_data['ct_1_test_kit'] == 'SARS-COV2, INFLUENZA + RSA (AUXDX) KIT':
+                in_data['ct_1_test_kit'] = 'AUSDIAGNOSTICS'       
+            if in_data['ct_1_test_kit'] == 'REAL STAR SARS-COV-2 RT-PCR VERSION 1':
+                in_data['ct_1_test_kit'] = 'ALTONA'         
+            if in_data['ct_1_test_kit'] in ['SARS-COV2 TEST', 'PANTHER FUSION® SARS-COV-2 ASSAY','2019-NCOV CDC ASSAY']:
+                in_data['ct_1_test_kit'] = 'ROCHE'         
+            if in_data['ct_1_test_kit'] in ['XPERT® XPRESS SARS-COV-2 (CEPHEID) KIT']:
+                in_data['ct_1_test_kit'] = 'XPERT'                                                         
+        if in_data.get('ct_2_test_target'):
+            if in_data['ct_2_test_target'] in ['ORF2', 'S-GENE', 'S-GENE (COV2 SPECIFIC)']:
+                in_data['ct_2_test_target'] = 'S'            
+            if in_data['ct_2_test_target'] in ['ORF1AB REGION 1', 'ORF1AB REGION 2','ORF1', "ORF1A/B"]:
+                in_data['ct_2_test_target'] = 'ORF1AB'      
+            if in_data['ct_2_test_target'] in ['E GENE', 'E-GENE (BETA-CORONAVIRUS TARGET)']:
+                in_data['ct_2_test_target'] = 'E'      
+            if in_data['ct_2_test_target'] in ['N1', "N2"]:
+                in_data['ct_2_test_target'] = 'N'                                                              
+            if in_data['ct_2_test_target'] in ['RP']:
+                in_data['ct_2_test_target'] = 'RDRP'                                
+        if in_data.get('ct_1_test_target'):
+            if in_data['ct_1_test_target'] in ['RP']:
+                in_data['ct_1_test_target'] = 'RDRP'                
+            if in_data['ct_1_test_target'] in ['ORF2', 'S-GENE', 'S-GENE (COV2 SPECIFIC)']:
+                in_data['ct_1_test_target'] = 'S'    
+            if in_data['ct_1_test_target'] in ['ORF1AB REGION 1','ORF1AB REGION 2', 'ORF1', "ORF1A/B"]:
+                in_data['ct_1_test_target'] = 'ORF1AB'                         
+            if in_data['ct_1_test_target'] in ['E GENE', 'E-GENE (BETA-CORONAVIRUS TARGET)']:
+                in_data['ct_1_test_target'] = 'E'                
+            if in_data['ct_1_test_target'] in ['N1', "N2"]:
+                in_data['ct_1_test_target'] = 'N'                                              
         return in_data
 
 class lineageMeta(Schema):
