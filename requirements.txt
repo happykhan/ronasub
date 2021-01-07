@@ -17,7 +17,7 @@ isort==4.3.21
 jdcal==1.4.1
 kiwisolver==1.2.0
 lazy-object-proxy==1.4.3
-lxml==4.5.2
+lxml==4.6.2
 marshmallow==3.7.1
 matplotlib==3.3.1
 mccabe==0.6.1
