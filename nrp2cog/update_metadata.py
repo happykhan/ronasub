@@ -1,9 +1,11 @@
 from marshmallow import EXCLUDE
+from marshmallow import ValidationError
 import re 
 import matplotlib.pyplot as plt
 from nrpschema import BioMeta
 import collections
 import gspread
+import logging
 
 def common_member(a, b): 
     a_set = set(a) 
@@ -14,17 +16,24 @@ def common_member(a, b):
         return False
 
 
-def get_bio_metadata(client, sheet_name='COG_UK_Metadata_QIB_Deidentified'):
+def get_bio_metadata(client, sheet_name='COG-UK Raw Metadata'):
 
     meta_data = {}
+    errors = {}
     for sheet in client.open(sheet_name).worksheets():
         all_values = sheet.get_all_records()
         for x in all_values:
             if x['COG Sample ID'].startswith('NORW'):
-                record = BioMeta(unknown = EXCLUDE).load(x)
-                meta_data[record['central_sample_id']] = record
+                try: 
+                    record = BioMeta(unknown = EXCLUDE).load(x)
+                    meta_data[record['central_sample_id']] = record
+                except ValidationError as err:
 
-    return meta_data
+                    logging.error(x['COG Sample ID'])
+                    logging.error(err.messages)
+                    errors[x['COG Sample ID']] = err.messages
+
+    return meta_data, errors
 
 def update_our_meta(new_data, client, sheet_name='SARCOV2-Metadata', force_update = True):
     sheet = client.open(sheet_name).sheet1

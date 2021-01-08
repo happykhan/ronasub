@@ -12,7 +12,7 @@ class BioMeta(Schema):
            'OXFORDSHIRE', 'RUTLAND', 'SHROPSHIRE','SOMERSET','SOUTH YORKSHIRE','STAFFORDSHIRE','SUFFOLK','SURREY',
            'TYNE AND WEAR','WARWICKSHIRE','WEST MIDLANDS','WEST SUSSEX','WEST YORKSHIRE','WILTSHIRE','WORCESTERSHIRE', 'MIDDLESEX']
 
-    central_sample_id = fields.Str(data_key="COG Sample ID", required=True, validate=validate.Regexp("^NORW-[a-zA-Z0-9]{5}$"))
+    central_sample_id = fields.Str(data_key="COG Sample ID", required=True, validate=validate.Regexp("^NORW-[a-zA-Z0-9]{5,6}$"))
     biosample_source_id = fields.Str(data_key="NNUH Sample ID", required=True)
     adm1 = fields.Str(missing="UK-ENG")
     adm2 = fields.Str(data_key="County", validate=validate.OneOf(get_counties))
@@ -48,13 +48,13 @@ class BioMeta(Schema):
         if in_data.get('Collecting organisaton'):
             in_data['Collecting organisation'] = in_data.get('Collecting organisaton')
         for k,v in dict(in_data).items():
-            if v in ['', 'to check'] :
+            if v in ['', 'to check', 'Not stated'] :
                 in_data.pop(k)        
-            elif k in ['County', 'Collecting organisation', 'Outer Postcode'] and v.upper() in ['NOT AVAILABLE', 'UNKNOWN', 'NO ADDRESS', 'NO POST CODE']:
+            elif k in ['County', 'Collecting organisation', 'Outer Postcode'] and v.upper() in ['NOT AVAILABLE', 'UNKNOWN', 'NA', 'NO ADDRESS', 'NO POST CODE', 'UNKOWN']:
                 in_data.pop(k)
-            elif k in ['Sex'] and v.upper() in ['U', 'N']:
+            elif k in ['Sex'] and v.upper() in ['U', 'N', 'UNKNOWN','UNKOWN']:
                 in_data.pop(k)                
-            elif k in ['ICU admission'] and v.upper() in ['U', 'UKNOWN']:       
+            elif k in ['ICU admission'] and v.upper() in ['U', 'UKNOWN', 'N/A']:       
                 in_data.pop(k)         
             elif isinstance(v, str):
                     in_data[k] = v.strip()
@@ -62,7 +62,7 @@ class BioMeta(Schema):
             in_data['Sex'] = 'M'                    
         if in_data.get('Sex','').lower() in ['female']:
             in_data['Sex'] = 'F'                                
-        if in_data.get('Source','').lower() in ['bronchial washings','bronchial washing']:
+        if in_data.get('Source','').lower() in ['endotracheal aspirate', 'bronchial washings','bronchial washing']:
             in_data['Source'] = 'aspirate'
         if in_data.get("County"):
             in_data["County"] = in_data["County"].upper()
@@ -74,10 +74,12 @@ class BioMeta(Schema):
             in_data["County"] = 'GREATER LONDON'            
         if in_data.get("County", '').upper() == 'COLCHESTER':
             in_data["County"] = 'ESSEX'            
+        if in_data.get("County", '').lower() == 'leicestshire':
+            in_data["County"] = 'LEICESTERSHIRE'              
         if in_data.get("Source"):
             in_data["Source"] = in_data["Source"].lower()            
         if in_data.get('Body site'):
-            if in_data.get('Body site').lower() in ['throat/nose', 'nose/throat']:
+            if in_data.get('Body site').lower() in ['nose & troat', 'nose & throat', 'throat/nose', 'nose/throat']:
                 in_data['Body site'] = 'nose-throat'
             elif in_data.get('Body site').lower() in ['lung', "tracheostomy"]:
                 in_data['Body site'] = 'endotracheal'
@@ -112,11 +114,11 @@ class BioMeta(Schema):
         
 
 class CtMeta(Schema):
-    ct_1_ct_value = fields.Float(validate=validate.Range(min=0, max=60))
+    ct_1_ct_value = fields.Float(validate=validate.Range(min=0, max=2000))
     ct_1_test_kit = fields.Str(validate=validate.OneOf(["ALTONA", "ABBOTT", "AUSDIAGNOSTICS", "BOSPHORE", "ROCHE", "INHOUSE", "SEEGENE", "VIASURE", "BD", "XPERT"]))
     ct_1_test_platform = fields.Str(validate=validate.OneOf(["ALTOSTAR_AM16", "ABBOTT_M2000", "APPLIED_BIO_7500", "ROCHE_COBAS", "ROCHE_FLOW", "ROCHE_LIGHTCYCLER", "ELITE_INGENIUS", "CEPHEID_XPERT", "QIASTAT_DX", "AUSDIAGNOSTICS", "INHOUSE", "ALTONA", "PANTHER", "SEEGENE_NIMBUS", "QIAGEN_ROTORGENE", "BD_MAX"]))
     ct_1_test_target = fields.Str(validate=validate.OneOf(["E", "N", "S", "RDRP", "ORF1AB", "ORF8", 'RDRP+N']))
-    ct_2_ct_value = fields.Float(validate=validate.Range(min=0, max=60))
+    ct_2_ct_value = fields.Float(validate=validate.Range(min=0, max=2000))
     ct_2_test_kit = fields.Str(validate=validate.OneOf(["ALTONA", "ABBOTT", "AUSDIAGNOSTICS", "BOSPHORE", "ROCHE", "INHOUSE", "SEEGENE", "VIASURE", "BD", "XPERT"]))
     ct_2_test_platform = fields.Str(validate=validate.OneOf(["ALTOSTAR_AM16", "ABBOTT_M2000", "APPLIED_BIO_7500", "ROCHE_COBAS", "ROCHE_FLOW", "ROCHE_LIGHTCYCLER", "ELITE_INGENIUS", "CEPHEID_XPERT", "QIASTAT_DX", "AUSDIAGNOSTICS", "INHOUSE", "ALTONA", "PANTHER", "SEEGENE_NIMBUS", "QIAGEN_ROTORGENE", "BD_MAX"]))
     ct_2_test_target = fields.Str(validate=validate.OneOf(["E", "N", "S", "RDRP", "ORF1AB", "ORF8", "RDRP+N"]))
@@ -124,16 +126,16 @@ class CtMeta(Schema):
     @pre_load
     def clean_up(self, in_data, **kwargs):
         for k,v in dict(in_data).items():
-            if v in ['', 'To check',  '#VALUE!', '-', 'N/A', "NEGATIVE", "negative"] :
+            if v in ['', '-', 'Unknown', 'To check',  '#VALUE!', '-', 'N/A', "NEGATIVE", "negative", 'Not recorded', 'unknown', 'NOT STATED'] :
                 in_data.pop(k)       
             elif isinstance(v, str):
                     in_data[k] = v.upper().strip()
         if in_data.get('ct_1_test_platform'):
-            if in_data.get('ct_1_test_platform').upper() == 'HOLOGIC PANTHER':
+            if in_data.get('ct_1_test_platform').upper() in ['HOLOGIC PANTHER']:
                 in_data['ct_1_test_platform'] = 'PANTHER'               
             if in_data.get('ct_1_test_platform').upper() == 'ROCHE COBAS 8800':
                 in_data['ct_1_test_platform'] = 'ROCHE_COBAS'   
-            if in_data.get('ct_1_test_platform').upper() == 'APPLIED BIOSYSTEMS QUANTSTUDIO 5':
+            if in_data.get('ct_1_test_platform').upper() in  ['APPLIED BIOSYSTEMS QUANTSTUDIO 5', 'APPLIED BIOSYSTEMS QUANTSTUDIO 7']:
                 in_data['ct_1_test_platform'] = 'APPLIED_BIO_7500'        
             if in_data.get('ct_1_test_platform').upper() == 'ROCHE LIGHTCYCLER LC480II':
                 in_data['ct_1_test_platform'] = 'ROCHE_LIGHTCYCLER'           
@@ -156,7 +158,7 @@ class CtMeta(Schema):
                 in_data['ct_2_test_kit'] = 'AUSDIAGNOSTICS'
             if in_data['ct_2_test_kit'] == 'REAL STAR SARS-COV-2 RT-PCR VERSION 1':
                 in_data['ct_2_test_kit'] = 'ALTONA'              
-            if in_data['ct_2_test_kit'] in ['SARS-COV2 TEST', 'PANTHER FUSION® SARS-COV-2 ASSAY', '2019-NCOV CDC ASSAY']:
+            if in_data['ct_2_test_kit'] in ['SARS-COV2 TEST','APTIMA® SARS-COV-2 ASSAY', 'PANTHER FUSION® SARS-COV-2 ASSAY', '2019-NCOV CDC ASSAY']:
                 in_data['ct_2_test_kit'] = 'ROCHE'  
             if in_data['ct_2_test_kit'] in ['XPERT® XPRESS SARS-COV-2 (CEPHEID) KIT']:
                 in_data['ct_2_test_kit'] = 'XPERT'                                                                                     
@@ -165,7 +167,7 @@ class CtMeta(Schema):
                 in_data['ct_1_test_kit'] = 'AUSDIAGNOSTICS'       
             if in_data['ct_1_test_kit'] == 'REAL STAR SARS-COV-2 RT-PCR VERSION 1':
                 in_data['ct_1_test_kit'] = 'ALTONA'         
-            if in_data['ct_1_test_kit'] in ['SARS-COV2 TEST', 'PANTHER FUSION® SARS-COV-2 ASSAY','2019-NCOV CDC ASSAY']:
+            if in_data['ct_1_test_kit'] in ['SARS-COV2 TEST','APTIMA® SARS-COV-2 ASSAY', 'PANTHER FUSION® SARS-COV-2 ASSAY','2019-NCOV CDC ASSAY']:
                 in_data['ct_1_test_kit'] = 'ROCHE'         
             if in_data['ct_1_test_kit'] in ['XPERT® XPRESS SARS-COV-2 (CEPHEID) KIT']:
                 in_data['ct_1_test_kit'] = 'XPERT'                                                         

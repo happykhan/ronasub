@@ -2,11 +2,17 @@ coromina/
 temp/
 majora_scripts
 credentials.json
+discord.json
+export_settings.json
 majora.json
 *.pem
 .vscode/
 majora_test.json
 temp*/
+pass
+.cogsub-tokens 
+enasubdir/
+enasub/ 
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

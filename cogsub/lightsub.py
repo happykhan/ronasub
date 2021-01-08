@@ -67,7 +67,7 @@ def create_run_command(library_name, run_name, output_dir):
                    --start-time "2020-09-02 01:06"
     """    
     out = open(os.path.join(output_dir, 'temp.run.sh'), 'w')
-    out.write(f'ocarina put sequencing --library-name "{library_name}  --run-name "{run_name}"  --instrument-make "ILLUMINA"  --instrument-model NEXTSEQ')
+    out.write(f'ocarina put sequencing --library-name "{library_name}"  --run-name "{run_name}"  --instrument-make "ILLUMINA"  --instrument-model NEXTSEQ')
 
 def get_samples(datadir, prefix='E'):
     all_samples = {} 
@@ -76,7 +76,16 @@ def get_samples(datadir, prefix='E'):
     for record in csv.DictReader(open(qc_file_path)):
         record['sample_name'] = record['sample_name'].split('_')[0]
         if record['sample_name'].startswith(prefix):
+            all_samples[record['sample_name']] = record        
+        if record['sample_name'].startswith('MILK'):
             all_samples[record['sample_name']] = record
+        if record['sample_name'].startswith('ALDP'):
+            all_samples[record['sample_name']] = record
+        if record['sample_name'].startswith('QEUH'):
+            all_samples[record['sample_name']] = record            
+        if record['sample_name'].startswith('CAMC'):
+            all_samples[record['sample_name']] = record                        
+
             
 
     return all_samples, qc_file.split('.')[0]

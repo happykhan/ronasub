@@ -26,7 +26,7 @@ import pprint
 from marshmallow import EXCLUDE
 from cogschemas import Cogmeta, CtMeta, RunMeta, LibraryBiosampleMeta, LibraryHeaderMeta
 from climbfiles import ClimbFiles
-from majora_util import majora_sample_exists, majora_add_samples, majora_add_run, majora_add_library
+from majora_util import majora_request
 from collections import Counter
 import re 
 
@@ -54,7 +54,7 @@ def get_google_metadata(valid_samples, run_name, library_name, sheet_name, crede
     maybe_blacklist = []
     cells_to_update = []
     blank_cells_to_update = []
-    force = False
+    force = True
     library_names = []
     in_run_but_not_in_sheet = list(set(valid_samples) - set(row_position))
     if in_run_but_not_in_sheet:
@@ -127,7 +127,7 @@ def get_google_metadata(valid_samples, run_name, library_name, sheet_name, crede
     if blank_cells_to_update:
             print('Updating values')
             sheet.update_cells(blank_cells_to_update)        
-    return records_to_upload, library_to_upload
+    return dict(biosamples= records_to_upload), library_to_upload
 
 def load_config(config="majora.json"):
     config_dict = json.load(open(config))
@@ -141,10 +141,11 @@ def read_illumina_dirs(output_dir_bams, output_dir_consensus, uploadlist, blackl
             if sample_name.endswith('crude-prep'):
                 continue
             if uploadlist: 
-                if not 'NORW-' + sample_name in uploadlist:
+                if not sample_name in uploadlist:
+                    logging.info('Skipping ' + sample_name)
                     continue
             if blacklist:
-                if 'NORW-' + sample_name in blacklist:
+                if sample_name in blacklist:
                     logging.info('Skipping ' + sample_name)
                     continue
             bam_file = os.path.join(output_dir_bams, x)
@@ -168,7 +169,7 @@ def read_illumina_dirs(output_dir_bams, output_dir_consensus, uploadlist, blackl
 def read_ont_dirs(output_dir_bams, output_dir_consensus, uploadlist, blacklist, climb_server_conn, climb_run_directory):
     found_samples = []
     for x in os.listdir(output_dir_bams):
-        valid_bam_match = re.match('(NORW-\w{5}).sorted.bam', x)
+        valid_bam_match = re.match('(NORW-\w{5,6}).sorted.bam', x)
 
         if valid_bam_match:
             sample_name = valid_bam_match.group(1)
@@ -205,7 +206,6 @@ def main(args, dry=False):
     library_name = 'NORW-' + run_name.split('_')[0]
     majora_server = config['majora_server']
     majora_username = config['majora_username']
-    majora_token = config['majora_token']
     climb_file_server = config['climb_file_server']
     climb_username = config['climb_username'] 
     sheet_name = args.sheet_name
@@ -240,14 +240,10 @@ def main(args, dry=False):
 
     # Connect to majora cog and sync metadata. 
     logging.info(f'Submitting biosamples to majora ' + run_name)
-    samples_dont_exist = [] 
     if force_sample_only:
-        majora_add_samples(records_to_upload, majora_username, majora_token, majora_server, dry)
+        majora_request(records_to_upload, majora_username, config, 'api.artifact.biosample.add', dry)
     else:
-        for biosample in records_to_upload:
-            if not majora_sample_exists(biosample['central_sample_id'], majora_username, majora_token, majora_server, dry=False):
-                samples_dont_exist.append(biosample['central_sample_id'] )
-        if majora_add_samples(records_to_upload, majora_username, majora_token, majora_server, dry):
+        if majora_request(records_to_upload, majora_username, config, 'api.artifact.biosample.add', dry):
             logging.info(f'Submitted biosamples to majora')
             logging.info(f'Submitting library and run to majora')
             for lib_val in library_to_upload.values():
@@ -255,8 +251,8 @@ def main(args, dry=False):
                 if len(clean_lib_val['biosamples']) > 0 : 
                     run_to_upload = dict(library_name=lib_val['library_name'], runs = clean_lib_val.pop('runs'))
                     
-                    majora_add_library(clean_lib_val, majora_username, majora_token, majora_server, dry=dry)
-                    majora_add_run(run_to_upload, majora_username, majora_token, majora_server, dry=dry)
+                    majora_request(clean_lib_val, majora_username, config, 'api.artifact.library.add',  dry=dry)
+                    majora_request(run_to_upload, majora_username, config, 'api.process.sequencing.add', dry=dry)
         else:
             logging.error('failed to submit samples')
 

@@ -4,16 +4,26 @@ import collections
 from gspread.models import Cell
 from marshmallow import EXCLUDE, fields, Schema, pre_load
 import logging
+from marshmallow import ValidationError
 
 def get_ct_metadata(client, sheet_name='cov-ct'):
     sheet = client.open(sheet_name).sheet1
     all_values = sheet.get_all_records()
     cts = {}
+    errors = {}
+
     for x in all_values:
         if x['central_sample_id'].startswith('NORW'):
-            record = CtMeta(unknown=EXCLUDE).load(x)
-            cts[x['central_sample_id']] = record
-    return cts
+            try:
+                record = CtMeta(unknown=EXCLUDE).load(x)
+                cts[x['central_sample_id']] = record
+
+            except ValidationError as err:
+
+                logging.error(x['central_sample_id'])
+                logging.error(err.messages)
+                errors[x['central_sample_id']] = err.messages
+    return cts, errors
 
 
 def update_ct_meta(new_data, client, sheet_name='SARCOV2-Metadata'):

@@ -56,7 +56,7 @@ def update_lineage_option(args):
 def update_metadata_option(args):
 
     client = get_google_session(args.gcredentials)
-    new_dict = get_bio_metadata(client)
+    new_dict, errors = get_bio_metadata(client)
     update_our_meta(new_dict, client, force_update = False)
     # Create Patients field
     update_patient_id(client)
@@ -107,7 +107,7 @@ if __name__ == '__main__':
 
     # Update metadata parser
     meta_parser = subparsers.add_parser('update_metadata', help='Update metadata')
-    meta_parser.add_argument('--metadata', action='store', default='COG_UK_Metadata_QIB_Deidentified',  help='Name of Master Table in Google sheets')
+    meta_parser.add_argument('--metadata', action='store', default='COG-UK Raw Metadata',  help='Name of Master Table in Google sheets')
     meta_parser.set_defaults(func=update_metadata_option)
 
     # Update civet parser

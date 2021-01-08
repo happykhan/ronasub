@@ -26,15 +26,18 @@ class Cogmeta(Schema):
                     in_data[k] = v.strip().upper()
             if in_data.get('is_icu_patient') not in ['Y', 'N']:
                 if in_data.get('is_icu_patient'):
-                    in_data.pop('is_icu_patient')        
+                    in_data.pop('is_icu_patient')     
+            if in_data.get('collecting_org'):
+                if in_data.get('collecting_org') == 'HMP NORWICH':
+                    in_data['collecting_org'] = 'HMP'
         return in_data
 
 class CtMeta(Schema):
-    ct_1_ct_value = fields.Float(validate=validate.Range(min=0, max=60))
+    ct_1_ct_value = fields.Float(validate=validate.Range(min=0, max=2000))
     ct_1_test_kit = fields.Str(validate=validate.OneOf(["ALTONA", "ABBOTT", "INHOUSE", "ROCHE", "AUSDIAGNOSTICS", "BOSPHORE", "SEEGENE"]))
     ct_1_test_platform = fields.Str(validate=validate.OneOf(["APPLIED_BIO_7500","ALTOSTAR_AM16", "ABBOTT_M2000", "ROCHE_FLOW", "ROCHE_COBAS", "ELITE_INGENIUS", "CEPHEID_XPERT", "QIASTAT_DX", "AUSDIAGNOSTICS", "ROCHE_LIGHTCYCLER", "INHOUSE" ,"ALTONA", "PANTHER", "SEEGENE_NIMBUS"]))
     ct_1_test_target = fields.Str(validate=validate.OneOf(["S", "E", "RDRP", "N", "ORF1AB", "ORF8", "RDRP+N"]))    
-    ct_2_ct_value = fields.Float(validate=validate.Range(min=0, max=60))
+    ct_2_ct_value = fields.Float(validate=validate.Range(min=0, max=2000))
     ct_2_test_kit = fields.Str(validate=validate.OneOf(["ALTONA", "ABBOTT", "INHOUSE", "ROCHE", "AUSDIAGNOSTICS", "BOSPHORE", "SEEGENE"]))
     ct_2_test_platform = fields.Str(validate=validate.OneOf(["APPLIED_BIO_7500","ALTOSTAR_AM16", "ABBOTT_M2000", "ROCHE_FLOW", "ROCHE_COBAS", "ELITE_INGENIUS", "CEPHEID_XPERT", "QIASTAT_DX", "AUSDIAGNOSTICS", "ROCHE_LIGHTCYCLER", "QIAGEN_ROTORGENE", "INHOUSE" ,"ALTONA", "PANTHER", "SEEGENE_NIMBUS"]))
     ct_2_test_target = fields.Str(validate=validate.OneOf(["S", "E", "RDRP", "N", "ORF1AB", "ORF8", "RDRP+N"]))    
