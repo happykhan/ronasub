@@ -6,6 +6,7 @@ from nrpschema import BioMeta
 import collections
 import gspread
 import logging
+import os 
 
 def common_member(a, b): 
     a_set = set(a) 
@@ -36,29 +37,40 @@ def get_bio_metadata(client, sheet_name='COG-UK Raw Metadata'):
     return meta_data, errors
 
 def update_our_meta(new_data, client, sheet_name='SARCOV2-Metadata', force_update = True):
+    messages = [] 
+    old = None 
+    if os.path.exists('old_samples'):
+        old = [x.strip() for x in open('old_samples').readlines() ]
     sheet = client.open(sheet_name).sheet1
     all_values = sheet.get_all_records()
     column_position = sheet.row_values(1)
     row_position = sheet.col_values(1)
     no_bio_meta_data = set(row_position) - set([x['central_sample_id'] for x in new_data.values()])
+    if old:
+        no_bio_meta_data = set(no_bio_meta_data) - set(old)
     print('NO BIO META found for ' + ','.join(no_bio_meta_data))
+    messages.append('No metadata in input sheet found for ' + ', '.join(no_bio_meta_data))
     cells_to_update = []
     duplicates = [item for item, count in collections.Counter(row_position).items() if count > 1]
     if duplicates:
+        messages.append('Following records are duplicated in master sheet:' + ', '.join(duplicates))
         print('Following records are duplicated in master sheet:' + ','.join(duplicates))
     missing_rows_names = list(set([x['central_sample_id'] for x in new_data.values()]) - set(row_position) )
     if missing_rows_names:
-        print('adding Missing ROWS\n' + '\n'.join(missing_rows_names))
+        print('Adding Missing ROWS\n' + '\n'.join(missing_rows_names))
         sheet.resize(len(row_position))
         values = [[x] for x in missing_rows_names]
         sheet.append_rows(values)
         all_values = sheet.get_all_records()
         column_position = sheet.row_values(1)
-        row_position = sheet.col_values(1)        
+        row_position = sheet.col_values(1)
+    no_sync = '' 
     for x in all_values:
         bio_metadata = new_data.get(x['central_sample_id'])
         if bio_metadata:
             for key, value in bio_metadata.items():
+                if key == 'is_surveillance':
+                    continue
                 # Handle date.
                 if key == 'collection_date':
                     value =  value.strftime('%Y-%m-%d')                
@@ -66,17 +78,17 @@ def update_our_meta(new_data, client, sheet_name='SARCOV2-Metadata', force_updat
                     # look up row position
                     cells_to_update.append(gspread.models.Cell(row=row_position.index(x['central_sample_id'])+1, col=column_position.index(key)+1, value=value))
                 elif x[key] != value:
+                    no_sync += f"{x['central_sample_id']} : {key} != \"{value}\" It currently is \"{x[key]}\"\n"
                     print(f"{x['central_sample_id']} : {key} != \"{value}\" It currently is \"{x[key]}\"")
                     if force_update:
                         cells_to_update.append(gspread.models.Cell(row=row_position.index(x['central_sample_id'])+1, col=column_position.index(key)+1, value=value))
-        else:
-            print('NO METADATA IN BIO REPOSITORY FOR ' + x['central_sample_id'])
+    messages.append(no_sync)
     if cells_to_update:
         print('Updating values')
         sheet.update_cells(cells_to_update)
     else:
         print('All values sync. Nothing to update')
-
+    return messages
 
 def update_patient_id(client, sheet_name='SARCOV2-Metadata'):
     sheet = client.open(sheet_name).sheet1

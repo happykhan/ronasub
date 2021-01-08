@@ -1,3 +1,12 @@
+"""
+discord_plugin Runs a bot on discord that excutes nrp2cog functions
+
+Requires Discord API code
+
+### CHANGE LOG ### 
+2021-01-08 Nabil-Fareed Alikhan <nabil@happykhan.com>
+    * Initial build 
+"""
 import discord
 import json 
 from nrp2cog import get_bio_metadata, update_our_meta, update_patient_id
@@ -78,7 +87,14 @@ async def on_message(message):
 
         else:
             await channel.send('No errors from input sheet')
-        update_our_meta(new_dict, g_session, force_update = False)
+        messages = update_our_meta(new_dict, g_session, force_update = False)
+        if messages:
+            for message in messages:
+                if len(message) >= 2000:
+                    trun_message = '\nTOO MANY ERRORS. TRUNCATED.'
+                    trun_len = 2000 - len(trun_message)
+                    message = message[0:trun_len] + trun_message
+                await channel.send("```\n" + message + "```\n" )
         # Create Patients field
         update_patient_id(g_session)
         await channel.send('Updated metadata.')

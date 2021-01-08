@@ -22,7 +22,7 @@ The internal modules include:
 
 * ct_update: Update CT values
 * lineage_update: Update Linaege values
-* export_lineage: Export Linaege values
+* export_lineage: Export Lineage values
 * update_metadata: Update metadata
 * export_to_server: Export values to external server
 

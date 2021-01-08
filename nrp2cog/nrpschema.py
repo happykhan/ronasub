@@ -1,6 +1,8 @@
 from marshmallow import Schema, fields, EXCLUDE, pre_load, validate
 import datetime
 
+collection_date_min = datetime.date(2020, 3, 28)
+
 class BioMeta(Schema):
     postcode_regex = '([Gg][Ii][Rr] 0[Aa]{2})|((([A-Za-z][0-9]{1,2})|(([A-Za-z][A-Ha-hJ-Yj-y][0-9]{1,2})|(([A-Za-z][0-9][A-Za-z])|([A-Za-z][A-Ha-hJ-Yj-y][0-9][A-Za-z]?)))))'
     get_counties = ['BEDFORDSHIRE', 'BERKSHIRE', 'BRISTOL', 'BUCKINGHAMSHIRE',
@@ -19,7 +21,7 @@ class BioMeta(Schema):
     source_age = fields.Integer(data_key="Age", validate=validate.Range(min=0, max=120))
     source_sex = fields.Str(data_key="Sex", validate=validate.OneOf(['M','F']))
     received_date = fields.Str()
-    collection_date = fields.Date(data_key="Collection date")
+    collection_date = fields.Date(data_key="Collection date", validate=lambda x: x > collection_date_min)
     sample_type_collected = fields.Str(data_key="Source", validate=validate.OneOf(["dry swab", "swab", "sputum", "aspirate"]))
     swab_site = fields.Str(data_key="Body site", validate=validate.OneOf(["nose", "throat", "nose-throat", "endotracheal", "rectal"]))
     collecting_org = fields.Str(data_key="Collecting organisation")
@@ -41,7 +43,6 @@ class BioMeta(Schema):
     repeat_sample_id = fields.Str(data_key="Repeat Sample ID")
     is_surveillance = fields.Str(missing='Y')
     is_icu_patient = fields.Str(data_key="ICU admission", validate=validate.OneOf(['Y','N', 'Unknown']))
-   # ct_value = fields.Str(data_key='PCR Ct value')
 
     @pre_load
     def clean_up(self, in_data, **kwargs):
@@ -93,6 +94,8 @@ class BioMeta(Schema):
             in_data['ICU admission'] = 'N'   
         if  in_data.get('Collection date'):
             in_data['Collection date'] = self.handle_dates(in_data['Collection date'])            
+        else:
+            in_data["received_date"] = datetime.datetime.now().strftime('%Y-%m-%d')
         return in_data
 
     def handle_dates(self, date_string):
@@ -111,7 +114,6 @@ class BioMeta(Schema):
                 except ValueError:
                     raise
 
-        
 
 class CtMeta(Schema):
     ct_1_ct_value = fields.Float(validate=validate.Range(min=0, max=2000))

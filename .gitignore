@@ -13,6 +13,8 @@ pass
 .cogsub-tokens 
 enasubdir/
 enasub/ 
+gissub/
+old_samples
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
