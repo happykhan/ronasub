@@ -65,13 +65,22 @@ async def on_ready():
     await channel.send('NRP2COG Service started...')    
     print('We have logged in as {0.user}'.format(client))
 
+@client.event
+async def on_error():
+    channel = client.get_channel(chan_id)
+    await channel.send('NRP2COG Service has encountered an error!')    
 
+import random 
 @client.event
 async def on_message(message):
     channel = client.get_channel(chan_id)
 
     if message.author == client.user:
         return
+
+    if message.content.startswith('!wisdom'):
+        wise = random.choice(open('proverbs.txt').readlines())
+        await message.channel.send(f"```\n{wise.strip()}\n```\n")
 
     if message.content.startswith('!ping'):
         await message.channel.send('Pong!')
@@ -133,6 +142,7 @@ async def on_message(message):
         help_message += '    !update_ct: Imports ct data\n'
         help_message += '    !export_lineages: Exports Sample information and lineages\n'
         help_message += '    !export_to_phe: Exports Lab and COG IDs to PHE, so they can pair them\n'
+        help_message += '    !wisdom: Replies something meaningful\n'        
         await channel.send(f"```\n{help_message}\n```")
 
 @client.event
