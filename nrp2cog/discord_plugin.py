@@ -62,7 +62,7 @@ def export_to_phe_func():
 @client.event
 async def on_ready():
     channel = client.get_channel(chan_id)
-    await channel.send('NRP2COG Service started...')    
+ #   await channel.send('NRP2COG Service started...')    
     print('We have logged in as {0.user}'.format(client))
 
 @client.event
@@ -86,49 +86,52 @@ async def on_message(message):
         await message.channel.send('Pong!')
 
     if message.content.startswith('!update_metadata'):
-        await channel.send('Updating metadata...')
+        await message.channel.send('Updating metadata...')
         log.info('Updating metadata')
         g_session = get_google_session()
         new_dict, errors = get_bio_metadata(g_session)
         if errors:
             errorlist = create_error_list(errors)
-            await channel.send(f'Following {len(errors)} errors were found in the input sheet:\n```\n{errorlist}\n```\n These records have been ignored')
+            await message.channel.send(f'Following {len(errors)} errors were found in the input sheet:\n```\n{errorlist}\n```\n These records have been ignored')
 
         else:
-            await channel.send('No errors from input sheet')
-        messages = update_our_meta(new_dict, g_session, force_update = False)
-        if messages:
-            for message in messages:
-                if len(message) >= 2000:
+            await message.channel.send('No errors from input sheet')
+        error_messages = update_our_meta(new_dict, g_session, force_update = False)
+        if error_messages:
+            for error_message in error_messages:
+                if len(error_message) >= 2000:
                     trun_message = '\nTOO MANY ERRORS. TRUNCATED.'
-                    trun_len = 2000 - len(trun_message)
-                    message = message[0:trun_len] + trun_message
-                await channel.send("```\n" + message + "```\n" )
+                    trun_len = 1999 - len(trun_message)
+                    error_message = error_message[0:trun_len] + trun_message
+                await message.channel.send("```\n" + error_message + "```\n" )
         # Create Patients field
         update_patient_id(g_session)
-        await channel.send('Updated metadata.')
+        await message.channel.send('Updated metadata.')
         log.info('Done metadata')     
 
     if message.content.startswith('!update_ct'):
-        await channel.send('Updating ct data...')
+        await message.channel.send('Updating ct data...')
         log.info('Updating ct data')
         g_session = get_google_session()
         new_dict, errors = get_ct_metadata(g_session)
         if errors:
             errorlist = create_error_list(errors)
             error_message = f'Following {len(errors)} errors were found in the input sheet:\n```\n{errorlist}\n```\n These records have been ignored'
-            await channel.send(error_message)
+            await message.channel.send(error_message)
         else:
-            await channel.send('No errors from input sheet')
-        update_ct_meta(new_dict, g_session)     
-        if messages:
-            for message in messages:
-                if len(message) >= 2000:
+            await message.channel.send('No errors from input sheet')
+        error_messages = update_ct_meta(new_dict, g_session)     
+
+        if error_messages:
+            for error_message in error_messages:
+                if len(error_message) >= 2000:
                     trun_message = '\nTOO MANY ERRORS. TRUNCATED.'
-                    trun_len = 2000 - len(trun_message)
-                    message = message[0:trun_len] + trun_message
-                await channel.send("```\n" + message + "```\n" )
-        await channel.send('Updated ct data.')
+                    trun_len = 1999 - len(trun_message)
+                    error_message = error_message[0:trun_len] + trun_message
+                await message.channel.send("```\n" + error_message + "```\n" )
+        else:
+            await message.channel.send('No Errors for updating')    
+        await message.channel.send('Updated ct data.')
         log.info('Done ct data')    
 
     if message.content.startswith('!export_lineages'):
