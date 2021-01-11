@@ -27,7 +27,8 @@ def update_pub_info(client, sheet_name='SARCOV2-Metadata', out_sheet_name='Sampl
         values = [[x] for x in rows_to_add]
         sheet.append_rows(values)
     all_values = sheet.get_all_records()
-
+    column_position = sheet.row_values(1)
+    row_position = sheet.col_values(1)      
     for x in all_values:
         if load.get(x['sample_id']):
             for id, value in load.get(x['sample_id']).items(): 

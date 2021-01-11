@@ -64,7 +64,7 @@ def update_metadata_option(args):
 def update_ct_option(args):
 
     client = get_google_session(args.gcredentials)
-    new_dict = get_ct_metadata(client, sheet_name=args.ctdata)
+    new_dict, errors = get_ct_metadata(client, sheet_name=args.ctdata)
     update_ct_meta(new_dict, client, sheet_name=args.maindata)
 
 def update_civet_option(args):

@@ -118,10 +118,16 @@ async def on_message(message):
             errorlist = create_error_list(errors)
             error_message = f'Following {len(errors)} errors were found in the input sheet:\n```\n{errorlist}\n```\n These records have been ignored'
             await channel.send(error_message)
-
         else:
             await channel.send('No errors from input sheet')
-        update_ct_meta(new_dict, g_session)                    
+        update_ct_meta(new_dict, g_session)     
+        if messages:
+            for message in messages:
+                if len(message) >= 2000:
+                    trun_message = '\nTOO MANY ERRORS. TRUNCATED.'
+                    trun_len = 2000 - len(trun_message)
+                    message = message[0:trun_len] + trun_message
+                await channel.send("```\n" + message + "```\n" )
         await channel.send('Updated ct data.')
         log.info('Done ct data')    
 
@@ -130,7 +136,7 @@ async def on_message(message):
         update_pub_info(g_session)
         await channel.send('Exported Sample lineage information.')
 
-    if message.content.startswith('!export_to_phe'):
+    if message.content.startswith('!export_to_server'):
         export_to_phe_func()
         await channel.send('Exported lab IDs to PHE.')
 
@@ -141,7 +147,7 @@ async def on_message(message):
         help_message += '    !update_metadata: Imports metadata from the raw input table\n'
         help_message += '    !update_ct: Imports ct data\n'
         help_message += '    !export_lineages: Exports Sample information and lineages\n'
-        help_message += '    !export_to_phe: Exports Lab and COG IDs to PHE, so they can pair them\n'
+        help_message += '    !export_to_server: Exports Lab and COG IDs to PHE, so they can pair them\n'
         help_message += '    !wisdom: Replies something meaningful\n'        
         await channel.send(f"```\n{help_message}\n```")
 

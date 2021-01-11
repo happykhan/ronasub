@@ -48,7 +48,7 @@ def update_our_meta(new_data, client, sheet_name='SARCOV2-Metadata', force_updat
     no_bio_meta_data = set(row_position) - set([x['central_sample_id'] for x in new_data.values()])
     if old:
         no_bio_meta_data = set(no_bio_meta_data) - set(old)
-    print('NO BIO META found for ' + ','.join(no_bio_meta_data))
+    logging.info('NO BIO META found for ' + ','.join(no_bio_meta_data))
     messages.append('No metadata in input sheet found for ' + ', '.join(no_bio_meta_data))
     cells_to_update = []
     duplicates = [item for item, count in collections.Counter(row_position).items() if count > 1]

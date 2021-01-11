@@ -198,22 +198,22 @@ def read_ont_dirs(output_dir_bams, output_dir_consensus, uploadlist, blacklist, 
                 logging.error('Multiple fasta file!')
     return found_samples    
 
-def main(args, dry=False):
+
+def cogsub_run(majora_token, datadir, runname, sheet_name, force_sample_only, ont, dry=False):
     # Load from config
-    config = load_config(args.majora_token)
-    output_dir = args.datadir
-    run_name = args.runname
+    config = load_config(majora_token)
+    output_dir = datadir
+    run_name = runname
     library_name = 'NORW-' + run_name.split('_')[0]
-    majora_server = config['majora_server']
     majora_username = config['majora_username']
     climb_file_server = config['climb_file_server']
     climb_username = config['climb_username'] 
-    sheet_name = args.sheet_name
-    force_sample_only = args.force_sample_only
+    sheet_name = sheet_name
+    force_sample_only = force_sample_only
     logging.info(f'Dry run is {dry}')
     output_dir_bams = os.path.join(output_dir, 'ncovIllumina_sequenceAnalysis_trimPrimerSequences')
     output_dir_consensus = os.path.join(output_dir, 'ncovIllumina_sequenceAnalysis_makeConsensus')
-    if args.ont:
+    if ont:
         output_dir_bams = os.path.join(output_dir, "articNcovNanopore_sequenceAnalysisMedaka_articMinIONMedaka")
         output_dir_consensus = os.path.join(output_dir, "articNcovNanopore_sequenceAnalysisMedaka_articMinIONMedaka")
     climb_server_conn = ClimbFiles(climb_file_server, climb_username)
@@ -230,14 +230,13 @@ def main(args, dry=False):
         uploadlist = [x.strip() for x in open(output_dir_uploadlist).readlines()]
     if os.path.exists(output_dir_blacklist):
         blacklist = [x.strip() for x in open(output_dir_blacklist).readlines()]
-    if args.ont:
+    if ont:
         found_samples = read_ont_dirs(output_dir_bams, output_dir_consensus, uploadlist, blacklist, climb_server_conn, climb_run_directory)
     else:
         found_samples = read_illumina_dirs(output_dir_bams, output_dir_consensus, uploadlist, blacklist, climb_server_conn, climb_run_directory)
     # Connect to google sheet. Fetch & validate metadata
     logging.info(f'Found {len(found_samples)} samples')
     records_to_upload, library_to_upload = get_google_metadata(found_samples, run_name, library_name, sheet_name=sheet_name, credentials=args.gcredentials, ont=args.ont)
-
     # Connect to majora cog and sync metadata. 
     logging.info(f'Submitting biosamples to majora ' + run_name)
     if force_sample_only:
@@ -256,6 +255,9 @@ def main(args, dry=False):
         else:
             logging.error('failed to submit samples')
 
+
+def main(args):
+    cogsub_run(args.majora_token, args.datadir, args.runname, args.sheet_name, args.force_sample_only, args.ont)
    
 if __name__ == '__main__':
     start_time = time.time()
