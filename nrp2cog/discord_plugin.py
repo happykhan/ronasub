@@ -62,7 +62,7 @@ def export_to_phe_func():
 @client.event
 async def on_ready():
     channel = client.get_channel(chan_id)
- #   await channel.send('NRP2COG Service started...')    
+    await channel.send('NRP2COG Service started...')    
     print('We have logged in as {0.user}'.format(client))
 
 @client.event
@@ -99,9 +99,9 @@ async def on_message(message):
         error_messages = update_our_meta(new_dict, g_session, force_update = False)
         if error_messages:
             for error_message in error_messages:
-                if len(error_message) >= 2000:
+                if len(error_message) >= 1950:
                     trun_message = '\nTOO MANY ERRORS. TRUNCATED.'
-                    trun_len = 1999 - len(trun_message)
+                    trun_len = 1950 - len(trun_message)
                     error_message = error_message[0:trun_len] + trun_message
                 await message.channel.send("```\n" + error_message + "```\n" )
         # Create Patients field
@@ -124,9 +124,9 @@ async def on_message(message):
 
         if error_messages:
             for error_message in error_messages:
-                if len(error_message) >= 2000:
+                if len(error_message) >= 1950:
                     trun_message = '\nTOO MANY ERRORS. TRUNCATED.'
-                    trun_len = 1999 - len(trun_message)
+                    trun_len = 1950 - len(trun_message)
                     error_message = error_message[0:trun_len] + trun_message
                 await message.channel.send("```\n" + error_message + "```\n" )
         else:
@@ -137,11 +137,11 @@ async def on_message(message):
     if message.content.startswith('!export_lineages'):
         g_session = get_google_session()
         update_pub_info(g_session)
-        await channel.send('Exported Sample lineage information.')
+        await message.channel.send('Exported Sample lineage information.')
 
     if message.content.startswith('!export_to_server'):
         export_to_phe_func()
-        await channel.send('Exported lab IDs to PHE.')
+        await message.channel.send('Exported lab IDs to PHE.')
 
     if message.content.startswith('!help'):
         help_message = 'Hi, This is the NRP2COG bot\nI am designed to import/export data from the SARSCOV2-Metadata master table\nI have the following options:\n'
@@ -152,7 +152,7 @@ async def on_message(message):
         help_message += '    !export_lineages: Exports Sample information and lineages\n'
         help_message += '    !export_to_server: Exports Lab and COG IDs to PHE, so they can pair them\n'
         help_message += '    !wisdom: Replies something meaningful\n'        
-        await channel.send(f"```\n{help_message}\n```")
+        await message.channel.send(f"```\n{help_message}\n```")
 
 @client.event
 async def bg_phe_export(self):

@@ -46,7 +46,7 @@ def update_ct_meta(new_data, client, sheet_name='SARCOV2-Metadata'):
             if count > 1])
     logging.info(f'Following records are duplicated in master sheet: \
          {duplicate_sheet}')
-    messages.append('Following records are duplicated in master sheet:\n' + ', '.join(duplicate_sheet))
+    messages.append(f'Following records are duplicated in master sheet: {duplicate_sheet}\n')
     missing_in_master = '\n'.join(list(set(new_data.keys()) - set(row_position)))
     messages.append('Following records appear in the CT sheet, but NOT in the master sheet:\n' + missing_in_master)
     logging.info('PLEASE ADD THESE ROWS\n' + missing_in_master)
