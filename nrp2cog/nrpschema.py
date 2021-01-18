@@ -48,6 +48,9 @@ class BioMeta(Schema):
     def clean_up(self, in_data, **kwargs):
         if in_data.get('Collecting organisaton'):
             in_data['Collecting organisation'] = in_data.get('Collecting organisaton')
+        if in_data.get('Collecting organisaton')=='JPH':
+            in_data['Collecting organisation'] = 'JPUH'
+        
         for k,v in dict(in_data).items():
             if v in ['', 'to check', 'Not stated'] :
                 in_data.pop(k)        
