@@ -46,6 +46,7 @@ def update_our_meta(new_data, client, sheet_name='SARCOV2-Metadata', force_updat
     column_position = sheet.row_values(1)
     row_position = sheet.col_values(1)
     no_bio_meta_data = set(row_position) - set([x['central_sample_id'] for x in new_data.values()])
+    no_bio_meta_data.pop('central_sample_id')
     if old:
         no_bio_meta_data = set(no_bio_meta_data) - set(old)
     logging.info('NO BIO META found for ' + ','.join(no_bio_meta_data))
@@ -54,7 +55,7 @@ def update_our_meta(new_data, client, sheet_name='SARCOV2-Metadata', force_updat
     duplicates = [item for item, count in collections.Counter(row_position).items() if count > 1]
     if duplicates:
         messages.append('Following records are duplicated in master sheet:' + ', '.join(duplicates))
-        print('Following records are duplicated in master sheet:' + ','.join(duplicates))
+        print('Following records are duplicated in master sheet: ' + ','.join(duplicates))
     missing_rows_names = list(set([x['central_sample_id'] for x in new_data.values()]) - set(row_position) )
     if missing_rows_names:
         print('Adding Missing ROWS\n' + '\n'.join(missing_rows_names))
