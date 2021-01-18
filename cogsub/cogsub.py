@@ -199,7 +199,7 @@ def read_ont_dirs(output_dir_bams, output_dir_consensus, uploadlist, blacklist, 
     return found_samples    
 
 
-def cogsub_run(majora_token, datadir, runname, sheet_name, force_sample_only, ont, dry=False):
+def cogsub_run(majora_token, datadir, runname, sheet_name, gcredentials, force_sample_only, ont, dry=False):
     # Load from config
     config = load_config(majora_token)
     output_dir = datadir
@@ -209,7 +209,6 @@ def cogsub_run(majora_token, datadir, runname, sheet_name, force_sample_only, on
     climb_file_server = config['climb_file_server']
     climb_username = config['climb_username'] 
     sheet_name = sheet_name
-    force_sample_only = force_sample_only
     logging.info(f'Dry run is {dry}')
     output_dir_bams = os.path.join(output_dir, 'ncovIllumina_sequenceAnalysis_trimPrimerSequences')
     output_dir_consensus = os.path.join(output_dir, 'ncovIllumina_sequenceAnalysis_makeConsensus')
@@ -236,7 +235,7 @@ def cogsub_run(majora_token, datadir, runname, sheet_name, force_sample_only, on
         found_samples = read_illumina_dirs(output_dir_bams, output_dir_consensus, uploadlist, blacklist, climb_server_conn, climb_run_directory)
     # Connect to google sheet. Fetch & validate metadata
     logging.info(f'Found {len(found_samples)} samples')
-    records_to_upload, library_to_upload = get_google_metadata(found_samples, run_name, library_name, sheet_name=sheet_name, credentials=args.gcredentials, ont=args.ont)
+    records_to_upload, library_to_upload = get_google_metadata(found_samples, run_name, library_name, sheet_name=sheet_name, credentials=gcredentials, ont=ont)
     # Connect to majora cog and sync metadata. 
     logging.info(f'Submitting biosamples to majora ' + run_name)
     if force_sample_only:
@@ -257,7 +256,7 @@ def cogsub_run(majora_token, datadir, runname, sheet_name, force_sample_only, on
 
 
 def main(args):
-    cogsub_run(args.majora_token, args.datadir, args.runname, args.sheet_name, args.force_sample_only, args.ont)
+    cogsub_run(args.majora_token, args.datadir, args.runname, args.sheet_name,  args.gcredentials, args.force_sample_only, args.ont)
    
 if __name__ == '__main__':
     start_time = time.time()

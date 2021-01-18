@@ -19,6 +19,7 @@ import time
 import os 
 import csv
 from cogsub import cogsub_run
+from auto_refresh_token import do_oauth_refresh
 
 chan_id  = 796393522730762260
 client = discord.Client()
@@ -44,7 +45,7 @@ async def on_ready():
 @client.event
 async def on_error():
     channel = client.get_channel(chan_id)
-    await channel.send('COG Submission Service has encountered an error!')    
+    await channel.send('COG Submission Service has encountered an error!')
 
 def directory_dict(data_directories):
     all_dirs =  []
@@ -106,7 +107,7 @@ async def on_message(message):
         run_number = int(message.content.split()[2])
         run_dict = directory_dict(run_directories)
         data_dict = directory_dict(data_directories)
-        sample_sheet_path = os.path.join(run_dict[run_number]['path'], 'SampleSheet.csv')
+        sample_sheet_path = os.path.join(run_dict[run_number]['path'], 'SampleSheet.csv.COG')
         if os.path.exists(sample_sheet_path):
             all_lines = [ x.strip() for x in  open(sample_sheet_path).readlines() ] 
             header = [n for n,l in enumerate(all_lines) if l.startswith('Sample_name')][0]
@@ -127,7 +128,7 @@ async def on_message(message):
                 await message.channel.send(f"```\nThe following plates have been detected:\n{plate_text}\n```\n")
                 try:
                     def is_guy(m):
-                        return m.author == 'happykhan'
+                        return m.author.name == 'happykhan'
                     msg  = await client.wait_for('message', timeout=10.0, check=is_guy)
                     if msg.content == 'all':
                         plates = plate_info.keys()
@@ -137,9 +138,10 @@ async def on_message(message):
                         for x,y in plate_info.items():
                             if x in plates: 
                                 uploadlist.write('\n'.join(y))                
-                    cogsub_run('majora.json', data_dict[datadir_number]["path"], run_dict[run_number]["dirname"], 'SARCOV2-Metadata', False, False, dry=False)
+                    cogsub_run('majora.json', data_dict[datadir_number]["path"], run_dict[run_number]["dirname"], 'SARCOV2-Metadata', 'credentials.json', False, False, dry=False)
+                    await message.channel.send(f"```\nData should be on Majora now.\n```\n")
                 except asyncio.TimeoutError:
-                    await message.channel.send(f"```\Didn't hear a response. Reply faster. Aborting upload\n```\n")    
+                    await message.channel.send(f"```\nDidn't hear a response. Reply faster. Aborting upload\n```\n")    
                 except:
                     await message.channel.send(f"```\nSomething bad happened. Aborting upload\n```\n")    
                     logging.exception('Failed to read input from upload ') 
@@ -158,11 +160,20 @@ async def on_message(message):
         help_message += '    !cogsub_upload_to_cog: Uploads data to CLIMB. Needs datadir number and run number\n'
         await message.channel.send(f"```\n{help_message}\n```")
 
+@client.event
+async def bg_refresh_token():
+    await client.wait_until_ready()
+    while not client.is_closed():
+        do_oauth_refresh('majora.json')
+        channel = client.get_channel(chan_id)
+        await channel.send('Updated Majora tokens')
+        await asyncio.sleep(28800) # task runs every 8 hours 
 
 def main(args):
     config = load_config()
     chan_id = args.chanid
     log.setLevel(logging.INFO)
+    bg_task = client.loop.create_task(bg_refresh_token())
     if config.get('discord_token'):
         client.run(config.get('discord_token'))
     else:

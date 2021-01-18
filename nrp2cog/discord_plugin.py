@@ -46,10 +46,10 @@ def create_error_list(errors):
     for cogid, x in errors.items(): 
         for field, message in x.items():
             this_message = f"{cogid}\t{field}\t{message[0]}\n"
-            if len(errorlist) < 1800:
+            if len(errorlist) < 1950:
                 errorlist += this_message
             total_char += len(this_message)
-    if total_char > 1800:
+    if total_char > 1950:
         errorlist += '\nTOO MANY ERRORS. TRUNCATED.'
     return errorlist
 
@@ -155,9 +155,9 @@ async def on_message(message):
         await message.channel.send(f"```\n{help_message}\n```")
 
 @client.event
-async def bg_phe_export(self):
-    await self.wait_until_ready()
-    while not self.is_closed():
+async def bg_phe_export():
+    await client.wait_until_ready()
+    while not client.is_closed():
         export_to_phe_func()
         channel = client.get_channel(chan_id)
         await channel.send('Exported lab IDs to PHE.')
@@ -167,12 +167,11 @@ def main(args):
     config = load_config()
     chan_id = args.chanid
     log.setLevel(logging.INFO)
+    bg_task = client.loop.create_task(bg_phe_export())
     if config.get('discord_token'):
         client.run(config.get('discord_token'))
     else:
         log.error('No token found')
-
-
 
 if __name__ == '__main__':
     start_time = time.time()

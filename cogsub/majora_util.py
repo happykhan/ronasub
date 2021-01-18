@@ -71,7 +71,7 @@ def majora_oauth(config, oauth_scope, force_refresh=False):
                     "client_id": config["majora_client_id"],
                     "client_secret": config["majora_client_secret"],
                 }
-                token = session.refresh_token(config["majora_server"]+"o/token/", **refresh_params)
+                token = session.refresh_token(config["majora_server"]+"/o/token/", **refresh_params)
                 oauth_save_token(token)
 
             token = tokens[oauth_scope]
