@@ -125,7 +125,7 @@ async def on_message(message):
             if len(plate_info) > 0 : 
                 for x,y in plate_info.items():
                     plate_text += f'{x}\t' + ','.join(y[-10:])  + '\n'
-                await message.channel.send(f"```\nThe following plates have been detected:\n{plate_text}\n```\n")
+                await message.channel.send(f"```\nWhich plates do you want to upload?\nChoose single plate name (left value e.g. A2, A3), or \"all\".\nThe following plates have been detected:\n{plate_text}\n```\n")
                 try:
                     def is_guy(m):
                         return m.author.name == 'happykhan'

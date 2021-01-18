@@ -69,7 +69,7 @@ def update_our_meta(new_data, client, sheet_name='SARCOV2-Metadata', force_updat
         bio_metadata = new_data.get(x['central_sample_id'])
         if bio_metadata:
             for key, value in bio_metadata.items():
-                if key == 'is_surveillance':
+                if key in ['is_surveillance', 'received_date']:
                     continue
                 # Handle date.
                 if key == 'collection_date':
@@ -82,7 +82,8 @@ def update_our_meta(new_data, client, sheet_name='SARCOV2-Metadata', force_updat
                     print(f"{x['central_sample_id']} : {key} != \"{value}\" It currently is \"{x[key]}\"")
                     if force_update:
                         cells_to_update.append(gspread.models.Cell(row=row_position.index(x['central_sample_id'])+1, col=column_position.index(key)+1, value=value))
-    messages.append(no_sync)
+    if no_sync != '':
+        messages.append(no_sync)
     if cells_to_update:
         print('Updating values')
         sheet.update_cells(cells_to_update)
