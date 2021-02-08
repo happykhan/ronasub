@@ -17,7 +17,7 @@ et-xmlfile==1.0.1
 google-auth==1.24.0
 google-auth-oauthlib==0.4.2
 gspread==3.6.0
-httplib2==0.18.1
+httplib2==0.19.0
 idna==2.10
 isort==5.7.0
 jdcal==1.4.1
