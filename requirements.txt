@@ -54,7 +54,7 @@ tabulate==0.8.7
 toml==0.10.2
 typed-ast==1.4.2
 typing-extensions==3.7.4.3
-urllib3==1.26.2
+urllib3==1.26.3
 wrapt==1.12.1
 xlrd==2.0.1
 xlutils==2.0.0
