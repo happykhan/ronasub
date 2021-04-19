@@ -213,6 +213,8 @@ def cogsub_submit(majora_token, datadir, runname, sheet_name, gcredentials, ont,
     records_to_upload, library_to_upload = get_google_metadata(found_samples, run_name, library_name, sheet_name=sheet_name, credentials=gcredentials, ont=ont)
     # Connect to majora cog and sync metadata. 
     logging.info(f'Submitting biosamples to majora ' + run_name)
+    output_to_csv(records_to_upload)
+
     if majora_request(records_to_upload, majora_username, config, 'api.artifact.biosample.add', dry):
         logging.info(f'Submitted biosamples to majora')
         logging.info(f'Submitting library and run to majora')
@@ -225,3 +227,43 @@ def cogsub_submit(majora_token, datadir, runname, sheet_name, gcredentials, ont,
                 majora_request(run_to_upload, majora_username, config, 'api.process.sequencing.add', dry=dry)
     else:
         logging.error('failed to submit samples')
+
+def output_to_csv(records_to_upload):
+    output_csv = open('metadata.csv','w+')
+    header_has_been_printed=False
+    first_key=True
+
+    key_set=('central_sample_id','collecting_org','collection_date','biosample_source_id','is_surveillance','adm2','source_age','source_sex','is_icu_patient','ct_1_ct_value','ct_2_ct_value','swab_site','adm1')
+
+    for patient_record in records_to_upload['biosamples']:
+        if not header_has_been_printed: 
+            for key in key_set:
+                if not first_key: output_csv.write(',')
+                first_key=False
+                output_csv.write(key)
+            output_csv.write('\n')
+            header_has_been_printed=True
+
+        first_key=True
+        for key in key_set:
+            if not first_key: output_csv.write(',')
+            first_key=False
+            if key in patient_record.keys():
+                my_value = str(patient_record[key])
+                if ',' in my_value: output_csv.write('"')
+                output_csv.write(my_value)
+                if ',' in my_value: output_csv.write('"')
+            elif key[:3]=='ct_':
+                my_metrics = patient_record['metrics']
+                ct = my_metrics['ct']
+                ct_records = ct['records']
+                for index in ('1','2'):
+                    if key[:4]=='ct_' + index:
+                        ct_records_index = ct_records[index]
+                        ct_records_index_value = ct_records_index['ct_value']
+                        output_csv.write(str(ct_records_index_value))
+
+        output_csv.write('\n') # Assume the sample is from surveillance
+
+    output_csv.flush()
+    output_csv.close()        

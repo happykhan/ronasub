@@ -25,6 +25,7 @@ def submit_parser_option(args):
     
 def sync_parser_option(args):
     cogsub_sync(args.majora_token, args.sheet_name,  args.gcredentials)
+
    
 if __name__ == '__main__':
     start_time = time.time()
