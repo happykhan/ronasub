@@ -19,15 +19,22 @@ epi = "Licence: " + meta.__licence__ +  " by " +meta.__author__ + " <" +meta.__a
 logging.basicConfig()
 log = logging.getLogger()
 
-
 def plates_parser_option(args):
-    cogsub_submit(args.majora_token, args.datadir, args.runname, args.sheet_name,  args.gcredentials, args.ont)
+    # Reads output dir and fetches samples with plate info 
+    gather(args.majora_token, args.datadir, args.runname, args.sheet_name,  args.gcredentials, args.ont)
 
-def sheet_parser_option(args):
+def sync_meta_option(args):
+    # Checks local metadata with COG metadata is consistent 
     cogsub_make_sheet(args.majora_token, args.datadir, args.runname, args.sheet_name,  args.gcredentials, args.ont)    
 
-def sync_parser_option(args):
+def submit_filedata_option(args):
+    # Sends files from sequencing run to COG 
     cogsub_sync(args.majora_token, args.sheet_name,  args.gcredentials)
+
+def generate_metasheet_option(args):
+    # Generates metadata sheet for submission. 
+    pass
+
    
 if __name__ == '__main__':
     start_time = time.time()
@@ -40,24 +47,25 @@ if __name__ == '__main__':
     parser.add_argument('--version', action='version', version='%(prog)s ' + meta.__version__)
     parser.add_argument('--gcredentials', action='store', default='credentials.json', help='Path to Google Sheets API credentials (JSON)')
     parser.add_argument('--sheet_name', action='store', default='SARCOV2-Metadata', help='Name of Master Table in Google sheets')    
-    parser.add_argument('--majora_token', action='store', default='majora.json', help='Path to MAJORA COG API credentials (JSON)')
+    parser.add_argument('--submission_sheet', action='store', default='COGUK_submission_status', help='Name of Table tracking submission status in Google sheets')     
+    
+    # Plates parser
+    plates_parser = subparsers.add_parser('check_plates', help='Reads output dir and fetches samples with plate info ')
+    plates_parser.add_argument('datadir', action='store', help='Location of all sequencing data')    
+    plates_parser.set_defaults(func=plates_parser_option)
+
+    # Sync parser
+    sync_parser = subparsers.add_parser('check_sync', help='Checks local metadata with COG metadata is consistent')
+    sync_parser.add_argument('--ont', action='store_true', default=False, help='Is the output directory from nanopore')
+    sync_parser.add_argument('--majora_token', action='store', default='majora.json', help='Path to MAJORA COG API credentials (JSON)')
+    sync_parser.set_defaults(func=submit_parser_option)    
     
     # Submit parser
-    submit_parser = subparsers.add_parser('submit', help='Submit new data to COG')
-    submit_parser.add_argument('datadir', action='store', help='Location of ARTIC pipeline output')
-    submit_parser.add_argument('runname', action='store', help='Sequencing run name, must be unique')
-    submit_parser.add_argument('--ont', action='store_true', default=False, help='Is the output directory from nanopore')
-    submit_parser.set_defaults(func=submit_parser_option)
-
-    # Sheet parser
-    sheet_parser = subparsers.add_parser('submit', help='Create a new output metadata sheet')
-    sheet_parser.add_argument('datadir', action='store', help='Location of ARTIC pipeline output')
-    sheet_parser.add_argument('runname', action='store', help='Sequencing run name, must be unique')
-    sheet_parser.add_argument('--ont', action='store_true', default=False, help='Is the output directory from nanopore')
-    sheet_parser.set_defaults(func=submit_parser_option)    
-    
-    # Sync parser
     sync_parser = subparsers.add_parser('sync', help='Sync existing data to COG')
+    sync_parser.set_defaults(func=sync_parser_option)
+
+    # Metasheet parser 
+    sync_parser = subparsers.add_parser('generate_sheet', help='Generates metadata sheet for submission')
     sync_parser.set_defaults(func=sync_parser_option)
 
     args = parser.parse_args()
