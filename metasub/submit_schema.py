@@ -22,7 +22,7 @@ region_to_county = {
     "YORKSHIRE AND THE HUMBER": "WEST_YORKSHIRE|SOUTH_YORKSHIRE|NORTH_LINCOLNSHIRE"
 }
 
-class Cogmeta(Schema):
+class Samplemeta(Schema):
 
     central_sample_id = fields.Str(required=True)
     adm1 = fields.Str(missing='UK-ENG')
@@ -41,6 +41,14 @@ class Cogmeta(Schema):
     sender_sample_id = fields.Str()
     region = fields.Str()
     collection_pillar = fields.Int()
+    ct_1_ct_value = fields.Float(validate=validate.Range(min=0, max=2000))
+    ct_1_test_kit = fields.Str(validate=validate.OneOf(["ALTONA", "ABBOTT", "INHOUSE", "ROCHE", "AUSDIAGNOSTICS", "BOSPHORE", "SEEGENE", "BD", "XPERT", "QIASTAT", "ALINITY", "AMPLIDIAG"]))
+    ct_1_test_platform = fields.Str(validate=validate.OneOf(["APPLIED_BIO_7500","ALTOSTAR_AM16", "ABBOTT_M2000", "ROCHE_FLOW", "ROCHE_COBAS", "ELITE_INGENIUS", "CEPHEID_XPERT", "QIASTAT_DX", "AUSDIAGNOSTICS", "ROCHE_LIGHTCYCLER", "QIAGEN_ROTORGENE", "INHOUSE" ,"ALTONA", "PANTHER", "SEEGENE_NIMBUS", "BD_MAX", "AMPLIDIAG_EASY"]))
+    ct_1_test_target = fields.Str(validate=validate.OneOf(["S", "E", "RDRP", "N", "ORF1AB", "ORF8", "RDRP+N"]))    
+    ct_2_ct_value = fields.Float(validate=validate.Range(min=0, max=2000))
+    ct_2_test_kit = fields.Str(validate=validate.OneOf(["ALTONA", "ABBOTT", "INHOUSE", "ROCHE", "AUSDIAGNOSTICS", "BOSPHORE", "SEEGENE", "BD", "XPERT", "QIASTAT", "ALINITY", "AMPLIDIAG"]))
+    ct_2_test_platform = fields.Str(validate=validate.OneOf(["APPLIED_BIO_7500","ALTOSTAR_AM16", "ABBOTT_M2000", "ROCHE_FLOW", "ROCHE_COBAS", "ELITE_INGENIUS", "CEPHEID_XPERT", "QIASTAT_DX", "AUSDIAGNOSTICS", "ROCHE_LIGHTCYCLER", "QIAGEN_ROTORGENE", "INHOUSE" ,"ALTONA", "PANTHER", "SEEGENE_NIMBUS", "BD_MAX", "AMPLIDIAG_EASY"]))
+    ct_2_test_target = fields.Str(validate=validate.OneOf(["S", "E", "RDRP", "N", "ORF1AB", "ORF8", "RDRP+N"])) 
 
     @pre_load
     def clean_up(self, in_data, **kwargs):
@@ -64,39 +72,16 @@ class Cogmeta(Schema):
             in_data['adm2'] = in_data.get('region')
         return in_data
 
-class CtMeta(Schema):
-    ct_1_ct_value = fields.Float(validate=validate.Range(min=0, max=2000))
-    ct_1_test_kit = fields.Str(validate=validate.OneOf(["ALTONA", "ABBOTT", "INHOUSE", "ROCHE", "AUSDIAGNOSTICS", "BOSPHORE", "SEEGENE", "BD", "XPERT", "QIASTAT", "ALINITY", "AMPLIDIAG"]))
-    ct_1_test_platform = fields.Str(validate=validate.OneOf(["APPLIED_BIO_7500","ALTOSTAR_AM16", "ABBOTT_M2000", "ROCHE_FLOW", "ROCHE_COBAS", "ELITE_INGENIUS", "CEPHEID_XPERT", "QIASTAT_DX", "AUSDIAGNOSTICS", "ROCHE_LIGHTCYCLER", "QIAGEN_ROTORGENE", "INHOUSE" ,"ALTONA", "PANTHER", "SEEGENE_NIMBUS", "BD_MAX", "AMPLIDIAG_EASY"]))
-    ct_1_test_target = fields.Str(validate=validate.OneOf(["S", "E", "RDRP", "N", "ORF1AB", "ORF8", "RDRP+N"]))    
-    ct_2_ct_value = fields.Float(validate=validate.Range(min=0, max=2000))
-    ct_2_test_kit = fields.Str(validate=validate.OneOf(["ALTONA", "ABBOTT", "INHOUSE", "ROCHE", "AUSDIAGNOSTICS", "BOSPHORE", "SEEGENE", "BD", "XPERT", "QIASTAT", "ALINITY", "AMPLIDIAG"]))
-    ct_2_test_platform = fields.Str(validate=validate.OneOf(["APPLIED_BIO_7500","ALTOSTAR_AM16", "ABBOTT_M2000", "ROCHE_FLOW", "ROCHE_COBAS", "ELITE_INGENIUS", "CEPHEID_XPERT", "QIASTAT_DX", "AUSDIAGNOSTICS", "ROCHE_LIGHTCYCLER", "QIAGEN_ROTORGENE", "INHOUSE" ,"ALTONA", "PANTHER", "SEEGENE_NIMBUS", "BD_MAX", "AMPLIDIAG_EASY"]))
-    ct_2_test_target = fields.Str(validate=validate.OneOf(["S", "E", "RDRP", "N", "ORF1AB", "ORF8", "RDRP+N"]))    
-
-    @pre_load
-    def clean_up(self, in_data, **kwargs):
-        for k,v in dict(in_data).items():
-            if v in ['', 'to check',  '#VALUE!', '-'] :
-                in_data.pop(k)        
-            elif isinstance(v, str):
-                    in_data[k] = v.strip().upper()
-        return in_data
-
-class RunMeta(Schema):
+class SeqMeta(Schema):
     run_name = fields.Str(required=True)
     instrument_make = fields.Str(default='ILLUMINA')
     instrument_model = fields.Str(default='NextSeq 500')
     bioinfo_pipe_name = fields.Str()
     bioinfo_pipe_version = fields.Str()
-
-class LibraryHeaderMeta(Schema):
     library_name = fields.Str(required=True)
     library_seq_kit = fields.Str(default='Nextera')
     library_seq_protocol = fields.Str(default='Nextera LITE')
     library_layout_config = fields.Str(default='PAIRED')
-
-class LibraryBiosampleMeta(Schema):
     central_sample_id = fields.Str(required=True)
     library_selection = fields.Str(default='PCR')
     library_source = fields.Str(default='VIRAL_RNA')
