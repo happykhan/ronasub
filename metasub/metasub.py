@@ -7,13 +7,13 @@ Requires login for google sheets
 2021-04-19 Nabil-Fareed Alikhan <nabil@happykhan.com>
     * Initial build - split from cogsub 
 """
-from sync_data import cogsub_sync
 import logging
 import time
 import sys
-from submit_data import cogsub_submit, cogsub_make_sheet 
 import meta
 import argparse
+from gather_plates import gather
+from check_meta import check_meta
 
 epi = "Licence: " + meta.__licence__ +  " by " +meta.__author__ + " <" +meta.__author_email__ + ">"
 logging.basicConfig()

@@ -1,5 +1,5 @@
 """
-gather_plates reads covid data dir and locates all sequenced samples. 
+check_meta checks if samples are uploaded to CLIMB and if the metadata is the same. 
 
 Requires login for google sheets
 
@@ -9,5 +9,5 @@ Requires login for google sheets
 """
 import logging 
 
-def gather():
+def check_meta():
     logging.info('Not implemented')
