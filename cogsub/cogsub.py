@@ -280,7 +280,6 @@ def cogsub_run(majora_token, datadir, runname, sheet_name, gcredentials, force_s
     # Connect to majora cog and sync metadata. 
     logging.info(f'Submitting biosamples to majora ' + run_name)
     output_to_csv(records_to_upload)
-    quit()
     if force_sample_only:
         majora_request(records_to_upload, majora_username, config, 'api.artifact.biosample.add', dry)
     else:
