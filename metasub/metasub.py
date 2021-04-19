@@ -13,7 +13,6 @@ import sys
 import meta
 import argparse
 from gather_plates import gather
-from generate_metasheet import 
 from check_meta import check_meta
 from submit_filedata import submit_filedata
 from generate_metasheet import generate_metasheet
@@ -28,11 +27,11 @@ def plates_parser_option(args):
 
 def sync_meta_option(args):
     # Checks local metadata with COG metadata is consistent 
-    check_meta(args.majora_token, args.datadir, args.runname, args.sheet_name,  args.gcredentials, args.ont)    
+    check_meta(args.majora_token, args.sheet_name, args.submission_sheet, args.gcredentials)    
 
 def submit_filedata_option(args):
     # Sends files from sequencing run to COG 
-    cogsub_sync(args.majora_token, args.sheet_name,  args.gcredentials)
+    submit_filedata(args.majora_token, args.sheet_name,  args.gcredentials)
 
 def generate_metasheet_option(args):
     # Generates metadata sheet for submission. 
@@ -64,7 +63,7 @@ if __name__ == '__main__':
     sync_parser.set_defaults(func=sync_meta_option)    
     
     # Submit parser
-    submit_filedata_parser = subparsers.add_parser('sync', help='Sync existing data to COG')
+    submit_filedata_parser = subparsers.add_parser('submit_files', help='Sends files from sequencing run to COG ')
     submit_filedata_parser.set_defaults(func=submit_filedata_option)
 
     # Metasheet parser 
