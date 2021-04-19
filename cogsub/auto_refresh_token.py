@@ -13,7 +13,7 @@ import logging
 from majora_util import majora_oauth, oauth_load_tokens
 import meta
 from majora_endpoints import ENDPOINTS
-from cogsub import load_config
+from cogsub_util import load_config
 
 epi = "Licence: " + meta.__licence__ +  " by " +meta.__author__ + " <" +meta.__author_email__ + ">"
 logging.basicConfig()

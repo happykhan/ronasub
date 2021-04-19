@@ -18,7 +18,7 @@ import meta
 import time 
 import os 
 import csv
-from cogsub import cogsub_run
+from submit_data import cogsub_submit
 from auto_refresh_token import do_oauth_refresh
 
 chan_id  = 796393522730762260
@@ -103,52 +103,55 @@ async def on_message(message):
         # cogsub_run('majora.json', data_dict[datadir_number]["path"], run_dict[run_number]["dirname"], 'SARCOV2-Metadata', False, False, dry=False)
 
     if message.content.startswith('!cogsub_upload_to_cog'):
-        datadir_number = int(message.content.split()[1])
-        run_number = int(message.content.split()[2])
-        run_dict = directory_dict(run_directories)
-        data_dict = directory_dict(data_directories)
-        sample_sheet_path = os.path.join(run_dict[run_number]['path'], 'SampleSheet.csv.COG')
-        if os.path.exists(sample_sheet_path):
-            all_lines = [ x.strip() for x in  open(sample_sheet_path).readlines() ] 
-            header = [n for n,l in enumerate(all_lines) if l.startswith('Sample_name')][0]
-            samples = all_lines[header:]
-            text = f'Are you sure you want to upload output dir {data_dict[datadir_number]["dirname"]} with run name as {run_dict[run_number]["dirname"]}'
-            await message.channel.send(f"```\n{text}\n```\n")
-            plate_info = {}
-            plate_text = ''
-            for x in csv.DictReader(samples):
-                if x['Project'].upper() == 'COG':
-                    if plate_info.get(x['Called']):
-                        plate_info[x['Called']].append(x['Sample_name'])
-                    else:
-                        plate_info[x['Called']] = [x['Sample_name']] 
-            if len(plate_info) > 0 : 
-                for x,y in plate_info.items():
-                    plate_text += f'{x}\t' + ','.join(y[-10:])  + '\n'
-                await message.channel.send(f"```\nWhich plates do you want to upload?\nChoose single plate name (left value e.g. A2, A3), or \"all\".\nThe following plates have been detected:\n{plate_text}\n```\n")
-                try:
-                    def is_guy(m):
-                        return m.author.name == 'happykhan'
-                    msg  = await client.wait_for('message', timeout=10.0, check=is_guy)
-                    if msg.content == 'all':
-                        plates = plate_info.keys()
-                    else:
-                        plates = msg.content.split(',')
-                    with open(os.path.join(data_dict[datadir_number]["path"], 'uploadlist'), 'w') as uploadlist:
-                        for x,y in plate_info.items():
-                            if x in plates: 
-                                uploadlist.write('\n'.join(y))                
-                    cogsub_run('majora.json', data_dict[datadir_number]["path"], run_dict[run_number]["dirname"], 'SARCOV2-Metadata', 'credentials.json', False, False, dry=False)
-                    await message.channel.send(f"```\nData should be on Majora now.\n```\n")
-                except asyncio.TimeoutError:
-                    await message.channel.send(f"```\nDidn't hear a response. Reply faster. Aborting upload\n```\n")    
-                except:
-                    await message.channel.send(f"```\nSomething bad happened. Aborting upload\n```\n")    
-                    logging.exception('Failed to read input from upload ') 
+        if len(message.content.split()) > 2:
+            datadir_number = int(message.content.split()[1])
+            run_number = int(message.content.split()[2])
+            run_dict = directory_dict(run_directories)
+            data_dict = directory_dict(data_directories)
+            sample_sheet_path = os.path.join(run_dict[run_number]['path'], 'SampleSheet.csv')
+            if os.path.exists(sample_sheet_path):
+                all_lines = [ x.strip() for x in  open(sample_sheet_path).readlines() ] 
+                header = [n for n,l in enumerate(all_lines) if l.startswith('Sample_name')][0]
+                samples = all_lines[header:]
+                text = f'Are you sure you want to upload output dir {data_dict[datadir_number]["dirname"]} with run name as {run_dict[run_number]["dirname"]}'
+                await message.channel.send(f"```\n{text}\n```\n")
+                plate_info = {}
+                plate_text = ''
+                for x in csv.DictReader(samples):
+                    if x['Project'].upper() == 'COG':
+                        if plate_info.get(x['Called']):
+                            plate_info[x['Called']].append(x['Sample_name'])
+                        else:
+                            plate_info[x['Called']] = [x['Sample_name']] 
+                if len(plate_info) > 0 : 
+                    for x,y in plate_info.items():
+                        plate_text += f'{x}\t' + ','.join(y[-10:])  + '\n'
+                    await message.channel.send(f"```\nWhich plates do you want to upload?\nChoose single plate name (left value e.g. A2, A3), or \"all\".\nThe following plates have been detected:\n{plate_text}\n```\n")
+                    try:
+                        def is_guy(m):
+                            return m.author.name == 'happykhan'
+                        msg  = await client.wait_for('message', timeout=10.0, check=is_guy)
+                        if msg.content == 'all':
+                            plates = plate_info.keys()
+                        else:
+                            plates = msg.content.split(',')
+                        with open(os.path.join(data_dict[datadir_number]["path"], 'uploadlist'), 'w') as uploadlist:
+                            for x,y in plate_info.items():
+                                if x in plates: 
+                                    uploadlist.write('\n'.join(y))                
+                        cogsub_submit('majora.json', data_dict[datadir_number]["path"], run_dict[run_number]["dirname"], 'SARCOV2-Metadata', 'credentials.json', False, dry=False)
+                        await message.channel.send(f"```\nData should be on Majora now.\n```\n")
+                    except asyncio.TimeoutError:
+                        await message.channel.send(f"```\nDidn't hear a response. Reply faster. Aborting upload\n```\n")    
+                    except:
+                        await message.channel.send(f"```\nSomething bad happened. Aborting upload\n```\n")    
+                        logging.exception('Failed to read input from upload ') 
+                else:
+                    await message.channel.send(f"```\nNo COG plates detected in SampleSheet. See {sample_sheet_path}. Aborting upload\n```\n")    
             else:
-                await message.channel.send(f"```\nNo COG plates detected in SampleSheet. See {sample_sheet_path}. Aborting upload\n```\n")    
+                await message.channel.send(f"```\nThere is no sample sheet in {sample_sheet_path}. Are you sure you selected the right folder?\n```\n")
         else:
-            await message.channel.send(f"```\nThere is no sample sheet in {sample_sheet_path}. Are you sure you selected the right folder?\n```\n")
+            await message.channel.send(f"```\nNo Dirs specified:  <datadir_num> <runname_num>\n```\n")
         
 
     if message.content.startswith('!cogsub_help'):
@@ -166,7 +169,7 @@ async def bg_refresh_token():
     while not client.is_closed():
         do_oauth_refresh('majora.json')
         channel = client.get_channel(chan_id)
-        await channel.send('Updated Majora tokens')
+      #  await channel.send('Updated Majora tokens')
         await asyncio.sleep(28800) # task runs every 8 hours 
 
 def main(args):

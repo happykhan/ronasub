@@ -71,21 +71,33 @@ def create_run_command(library_name, run_name, output_dir):
 
 def get_samples(datadir, prefix='E'):
     all_samples = {} 
-    qc_file =  [x for x in os.listdir(datadir) if x.startswith('NORW') and x.endswith('.csv')][0]
+    qc_file =  [x for x in os.listdir(datadir) if x.startswith('NORW') and x.endswith('qc.csv')][0]
     qc_file_path = os.path.join(datadir, qc_file)
+    upload_path = os.path.join(datadir , 'uploadlist')
+    upload = []  
+    if os.path.exists(upload_path):
+        upload = [x.strip() for x in open(upload_path).readlines()]
     for record in csv.DictReader(open(qc_file_path)):
         record['sample_name'] = record['sample_name'].split('_')[0]
-        if record['sample_name'].startswith(prefix):
-            all_samples[record['sample_name']] = record        
-        if record['sample_name'].startswith('MILK'):
-            all_samples[record['sample_name']] = record
-        if record['sample_name'].startswith('ALDP'):
-            all_samples[record['sample_name']] = record
-        if record['sample_name'].startswith('QEUH'):
-            all_samples[record['sample_name']] = record            
-        if record['sample_name'].startswith('CAMC'):
-            all_samples[record['sample_name']] = record                        
+        yes = False 
+        if upload:
+            if record['sample_name'] in upload:
+                yes = True
+        else:
+            yes =  True 
 
+        if record['sample_name'].startswith(prefix) and yes:
+            all_samples[record['sample_name']] = record        
+        if record['sample_name'].startswith('MILK') and yes:
+            all_samples[record['sample_name']] = record
+        if record['sample_name'].startswith('ALDP') and yes:
+            all_samples[record['sample_name']] = record
+        if record['sample_name'].startswith('QEUH') and yes:
+            all_samples[record['sample_name']] = record            
+        if record['sample_name'].startswith('CAMC') and yes:
+            all_samples[record['sample_name']] = record                        
+        if record['sample_name'].startswith('RAND') and yes:
+            all_samples[record['sample_name']] = record     
             
 
     return all_samples, qc_file.split('.')[0]
