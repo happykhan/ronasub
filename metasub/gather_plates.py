@@ -65,16 +65,59 @@ def gather():
                                 if len(fields)>7:
                                     sampleName2Project[sampleName] = fields[len(fields)-1]
                                     sampleName2Called[sampleName] = fields[2]
-                                    
-                                    if fields[2] in called2plate.keys(): sampleName2Plate[sampleName] = called2plate[fields[2]]
-                                    elif sampleName[:8]=='ARCH-000' or sampleName[:8]=='ARCH_000': sampleName2Plate[sampleName] = sampleName[8:11]
+
+                                    # Firstly try to infer the plate name from the sample name
+                                    if sampleName[:8]=='ARCH-000' or sampleName[:8]=='ARCH_000': sampleName2Plate[sampleName] = sampleName[8:11]
+                                    elif sampleName[:5]=='IPSOS':
+                                        plate_name = sampleName[sampleName.index('_P')+2:]
+
+                                        rows=('A','B','C','D','E','F','G','H')
+                                        for row in rows:
+                                            if row in plate_name: plate_name = plate_name[:plate_name.index(row)]
+
+                                        if plate_name[-1:]=='_': plate_name = plate_name[:-1]
+                                        
+                                        sampleName2Plate[sampleName] = plate_name
+                                    elif sampleName[:8]=='Re_array' or sampleName[:8]=='Re-array':
+                                        plate_name = sampleName[sampleName.index('_pl')+3:]
+
+                                        rows=('A','B','C','D','E','F','G','H')
+                                        for row in rows:
+                                            if row in plate_name: plate_name = plate_name[:plate_name.index(row)]
+
+                                        if plate_name[-1:]=='_': plate_name = plate_name[:-1]
+                                        
+                                        sampleName2Plate[sampleName] = plate_name
+                                    elif fields[2] in called2plate.keys(): sampleName2Plate[sampleName] = called2plate[fields[2]]
                                     else: sampleName2Plate[sampleName] = "Unknown"
                                     
                                     sampleName2RunName[sampleName] = str(directory)
                     except:
                         pass
 
-    for sampleName in sampleName2RunName.keys():
-        print(sampleName + ',' + sampleName2RunName[sampleName] + ',' + sampleName2Plate[sampleName] + ',' + sampleName2Called[sampleName] + ',' + sampleName2Project[sampleName])
 
+
+# Now iterate through the covid results and output everything...use the metrics.csv
+    directories = os.listdir('transfer/incoming/QIB_Sequencing/Covid-19_Seq')
+    for directory in directories:
+        if os.path.isdir('transfer/incoming/QIB_Sequencing/Covid-19_Seq/' + directory):
+            directory_name = str(directory)
+            if directory_name[:7]=='result.':
+                files = os.listdir('transfer/incoming/QIB_Sequencing/Covid-19_Seq/' + directory)
+                for file in files:
+                    filename = str(file)
+                    if 'metrics' in filename:
+                        with open('transfer/incoming/QIB_Sequencing/Covid-19_Seq/' + directory + '/' + filename) as f:
+                            lines = f.readlines()
+                            first_line=True
+                            for line in lines:
+                                if first_line==True: first_line=False
+                                else:
+                                    fields = line.rstrip().split(',')
+                                    central_sample = fields[0]
+                                    if central_sample in sampleName2RunName.keys():
+                                        print(central_sample + ',' + sampleName2RunName[central_sample] + ',' + sampleName2Plate[central_sample] + ',' + sampleName2Called[central_sample] + ',' + sampleName2Project[central_sample] + ',' + fields[12] + ',' + fields[13])
+                                    else:
+                                        print(central_sample + ',Not found')
+                                    
 gather()
