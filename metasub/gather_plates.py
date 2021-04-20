@@ -115,12 +115,14 @@ def gather():
                         if directory[:15]=='result.illumina':
                             consensus_files = os.listdir('transfer/incoming/QIB_Sequencing/Covid-19_Seq/' + directory + '/ncovIllumina_sequenceAnalysis_makeConsensus')
                             for consensus_file in consensus_files:
-                                with open('transfer/incoming/QIB_Sequencing/Covid-19_Seq/' + directory + '/ncovIllumina_sequenceAnalysis_makeConsensus/' + consensus_file) as f:
-                                    try:
-                                        lines = f.readlines()
-                                        if 'G' in lines[1] or 'C' in lines[1] or 'A' in lines[1] or 'T' in lines[1]: consensus_sequence_names.append(str(consensus_file))
-                                    except:
-                                        pass
+                                consensus_file_path = 'transfer/incoming/QIB_Sequencing/Covid-19_Seq/' + directory + '/ncovIllumina_sequenceAnalysis_makeConsensus/' + consensus_file
+                                if not os.path.isdir(consensus_file_path):
+                                    with open(consensus_file_path) as f:
+                                        try:
+                                            lines = f.readlines()
+                                            if 'G' in lines[1] or 'C' in lines[1] or 'A' in lines[1] or 'T' in lines[1]: consensus_sequence_names.append(str(consensus_file))
+                                        except:
+                                            pass
                         elif directory[:15]=='result.coronahit':
                             sample_directories = os.listdir('transfer/incoming/QIB_Sequencing/Covid-19_Seq/' + directory + '/articNcovNanopore_sequenceAnalysisMedaka_articMinIONMedaka')
                             for sample_directory in sample_directories:
