@@ -26,12 +26,13 @@ import logging
 
 def gather():
     logging.info('Not implemented')
-    print('central_sample_id,run_name,plate,called,type,consensus_constructed,basic_qc,high_quality_qc')
+    print('central_sample_id,library_name,run_name,sequencing_date,plate,called,type,consensus_constructed,basic_qc,high_quality_qc')
 
     sampleName2Project=dict()
     sampleName2Called=dict()
     sampleName2Plate=dict()
     sampleName2RunName=dict()
+    sampleName2SequencingDate=dict()
 
     for next_seq_directory in ('Nextseq_1_runs','Nextseq_2_runs'):
         directories = os.listdir('transfer/incoming/QIB_Sequencing/' + next_seq_directory)
@@ -43,6 +44,12 @@ def gather():
 
                     with open(sample_sheet_file, encoding="latin-1") as f:
                         lines = f.readlines()
+                        date_line = lines[2].rstrip()
+                        sequencing_date='Unknown'
+                        if date_line[:4]=='Date':
+                            sequencing_date = date_line[date_line.index(',')+1:]
+                            sequencing_date = sequencing_date[6:10] + '-' + sequencing_date[3:5] + '-' + sequencing_date[0:2]
+                            
                         for line in lines:
                             fields = line.rstrip().split(',')
                             sampleName = fields[0]
@@ -62,6 +69,7 @@ def gather():
                             fields = line.rstrip().split(',')
                             sampleName = fields[0]
                             if len(fields)>7:
+                                sampleName2SequencingDate[sampleName] = sequencing_date
                                 sampleName2RunName[sampleName] = str(directory)
                                 sampleName2Project[sampleName] = fields[len(fields)-1]
                                 sampleName2Called[sampleName] = fields[2]
@@ -106,6 +114,13 @@ def gather():
             directory_name = str(directory)
             if directory_name[:7]=='result.':
                 files = os.listdir('transfer/incoming/QIB_Sequencing/Covid-19_Seq/' + directory)
+
+                library_name='Unknown'
+                for file in files:
+                    filename = str(file)
+                    if filename[-7:]=='.qc.csv':
+                        library_name = filename[:-7]
+                
                 for file in files:
                     filename = str(file)
                     if 'metrics' in filename:
@@ -145,8 +160,8 @@ def gather():
                                         for consensus_sequence_name in consensus_sequence_names:
                                             if central_sample in consensus_sequence_name:
                                                 consensus_exists='True'
-                                        
-                                        print(central_sample + ',' + sampleName2RunName[central_sample] + ',' + sampleName2Plate[central_sample] + ',' + sampleName2Called[central_sample] + ',' + sampleName2Project[central_sample] + ',' + consensus_exists + ',' + fields[12] + ',' + fields[13])
+
+                                        print(central_sample + ',' + library_name + ',' + sampleName2RunName[central_sample] + ',' + sampleName2SequencingDate[central_sample] + ',' + sampleName2Plate[central_sample] + ',' + sampleName2Called[central_sample] + ',' + sampleName2Project[central_sample] + ',' + consensus_exists + ',' + fields[12] + ',' + fields[13])
                       #              else:
                       #                  print(central_sample + ',Not found')
                                     
