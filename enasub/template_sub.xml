@@ -1,8 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<SUBMISSION broker_name="Quadram Institute Bioscience" center_name="Quadram Institute Bioscience">
+<SUBMISSION>
    <ACTIONS>
       <ACTION>
          <ADD/>
+      </ACTION>
+      <ACTION>
+         <HOLD HoldUntilDate="2021-12-30"/>
       </ACTION>
    </ACTIONS>
 </SUBMISSION>
