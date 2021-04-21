@@ -46,7 +46,7 @@ def update_our_meta(new_data, client, sheet_name='SARCOV2-Metadata', force_updat
     column_position = sheet.row_values(1)
     row_position = sheet.col_values(1)
     no_bio_meta_data = set(row_position) - set([x['central_sample_id'] for x in new_data.values()])
-    no_bio_meta_data.pop('central_sample_id')
+ #   no_bio_meta_data.pop('central_sample_id')
     if old:
         no_bio_meta_data = set(no_bio_meta_data) - set(old)
     if no_bio_meta_data : 
@@ -71,7 +71,7 @@ def update_our_meta(new_data, client, sheet_name='SARCOV2-Metadata', force_updat
         bio_metadata = new_data.get(x['central_sample_id'])
         if bio_metadata:
             for key, value in bio_metadata.items():
-                if key in ['is_surveillance', 'received_date']:
+                if key in ['is_surveillance']:
                     continue
                 # Handle date.
                 if key == 'collection_date':

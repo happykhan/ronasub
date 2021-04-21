@@ -46,10 +46,10 @@ def create_error_list(errors):
     for cogid, x in errors.items(): 
         for field, message in x.items():
             this_message = f"{cogid}\t{field}\t{message[0]}\n"
-            if len(errorlist) < 1950:
+            if len(errorlist) + len(this_message) < 1850:
                 errorlist += this_message
             total_char += len(this_message)
-    if total_char > 1950:
+    if total_char > 1850:
         errorlist += '\nTOO MANY ERRORS. TRUNCATED.'
     return errorlist
 
@@ -107,7 +107,7 @@ async def on_message(message):
         # Create Patients field
         update_patient_id(g_session)
         await message.channel.send('Updated metadata.')
-        log.info('Done metadata')     
+        log.info('Done metadata')
 
     if message.content.startswith('!update_ct'):
         await message.channel.send('Updating ct data...')
@@ -117,7 +117,10 @@ async def on_message(message):
         if errors:
             errorlist = create_error_list(errors)
             error_message = f'Following {len(errors)} errors were found in the input sheet:\n```\n{errorlist}\n```\n These records have been ignored'
-            await message.channel.send(error_message)
+            if len(error_message) < 2000:
+                await message.channel.send(error_message)
+            else:
+                await message.channel.send(f' {len(errors)} errors were found in the input sheet.  These records have been ignored')
         else:
             await message.channel.send('No errors from input sheet')
         error_messages = update_ct_meta(new_dict, g_session)     
@@ -160,7 +163,12 @@ async def bg_phe_export():
     while not client.is_closed():
         export_to_phe_func()
         channel = client.get_channel(chan_id)
-        await channel.send('Exported lab IDs to PHE.')
+        g_client = get_google_session()
+        new_dict, errors = get_bio_metadata(g_client)
+        update_our_meta(new_dict, g_client, force_update = False)
+        # Create Patients field
+        update_patient_id(g_client)        
+        await channel.send('Updated metadata & Exported lab IDs to PHE.')        
         await asyncio.sleep(86400) # task runs every day
 
 def main(args):

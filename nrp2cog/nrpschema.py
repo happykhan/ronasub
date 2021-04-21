@@ -43,6 +43,8 @@ class BioMeta(Schema):
     repeat_sample_id = fields.Str(data_key="Repeat Sample ID")
     is_surveillance = fields.Str(missing='Y')
     is_icu_patient = fields.Str(data_key="ICU admission", validate=validate.OneOf(['Y','N', 'Unknown']))
+    ct_1_ct_value = fields.Str()
+    ct_2_ct_value = fields.Str()
 
     @pre_load
     def clean_up(self, in_data, **kwargs):
@@ -62,6 +64,10 @@ class BioMeta(Schema):
                 in_data.pop(k)         
             elif isinstance(v, str):
                     in_data[k] = v.strip()
+        if in_data.get(''):
+            in_data['ct_2_ct_value'] = str(in_data.get(''))
+        if in_data.get('PCR Ct value',''):
+            in_data['ct_1_ct_value'] = str(in_data.get('PCR Ct value'))
         if in_data.get('Sex','').lower() in ['male']:
             in_data['Sex'] = 'M'                    
         if in_data.get('Sex','').lower() in ['female']:
@@ -83,7 +89,7 @@ class BioMeta(Schema):
         if in_data.get("Source"):
             in_data["Source"] = in_data["Source"].lower()            
         if in_data.get('Body site'):
-            if in_data.get('Body site').lower() in ['nose & troat', 'nose & throat', 'throat/nose', 'nose/throat']:
+            if in_data.get('Body site').lower() in ['nose and throat', 'nose &throat', 'nose & troat', 'nose & throat', 'throat/nose', 'nose/throat']:
                 in_data['Body site'] = 'nose-throat'
             elif in_data.get('Body site').lower() in ['lung', "tracheostomy"]:
                 in_data['Body site'] = 'endotracheal'
@@ -95,9 +101,11 @@ class BioMeta(Schema):
             in_data['ICU admission'] = 'Y'
         if in_data.get('ICU admission', '').lower() in ['no']:
             in_data['ICU admission'] = 'N'   
+        if in_data.get('Collected by QIB'): 
+            in_data["received_date"] = self.handle_dates(in_data['Collected by QIB'])
         if  in_data.get('Collection date'):
             in_data['Collection date'] = self.handle_dates(in_data['Collection date'])            
-        else:
+        elif not in_data.get("received_date"):
             in_data["received_date"] = datetime.datetime.now().strftime('%Y-%m-%d')
         return in_data
 

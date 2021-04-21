@@ -49,7 +49,7 @@ def export_phe(client, out_dir, sheet_name, file_server, username, key):
             date = x['received_date']
         if not x['central_sample_id'].endswith('duplicate') and not x['central_sample_id'].endswith('duplicates') and len(x["biosample_source_id"]) > 6:
             load[x['central_sample_id']] = { "cog_id": x['central_sample_id'], "biosample_source_id": x["biosample_source_id"], "date" : date}
-    out_file = os.path.join(out_dir, 'NORW-cog2labid.xlsx') 
+    out_file = os.path.join(out_dir, f'NORW-{sheet_name}-cog2labid.xlsx') 
     """
     FORMAT:
     Local laboratory ID	COG-UK sample ID	Date of specimen
@@ -78,5 +78,5 @@ def export_phe(client, out_dir, sheet_name, file_server, username, key):
 
     logging.info('Uploading to server')        
     server = PheFiles(file_server, username, key)
-    server.put_file(out_file, 'upload', overwrite=True)
+    server.put_file(out_file, 'upload', overwrite=False)
     logging.info('Done')                    
