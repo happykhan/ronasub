@@ -25,12 +25,7 @@ import os.path
 import logging 
 
 def gather():
-<<<<<<< HEAD
-    logging.info('Not implemented')
     print('central_sample_id,library_name,run_name,sequencing_date,upload_date,plate_failed,metadata_sync,is_submitted_to_cog,type,plate,consensus_constructed,basic_qc,high_quality_qc')
-=======
-    print('central_sample_id,library_name,run_name,sequencing_date,plate,called,type,consensus_constructed,basic_qc,high_quality_qc')
->>>>>>> 7a3d72c5b8267f73b1e1b38fd59172b68d8876d9
 
     sampleName2Project=dict()
     sampleName2Called=dict()
