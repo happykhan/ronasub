@@ -25,7 +25,6 @@ import os.path
 import logging 
 
 def gather():
-    logging.info('Not implemented')
     print('central_sample_id,run_name,plate,called,type,consensus_constructed,basic_qc,high_quality_qc')
 
     sampleName2Project=dict()
@@ -149,5 +148,6 @@ def gather():
                                         print(central_sample + ',' + sampleName2RunName[central_sample] + ',' + sampleName2Plate[central_sample] + ',' + sampleName2Called[central_sample] + ',' + sampleName2Project[central_sample] + ',' + consensus_exists + ',' + fields[12] + ',' + fields[13])
                       #              else:
                       #                  print(central_sample + ',Not found')
-                                    
-gather()
+
+if __name__ == '__main__':
+    gather()
