@@ -36,8 +36,6 @@ def add_missing_rows(submission_sheet_name, gcredentials):
             submission_sheet.resize(len(submission_values))
             submission_sheet.append_rows(sample_list)
 
-
-
 def check_meta(majora_token, sheet_name, submission_sheet_name, gcredentials):
     # Fetch metadata from remote
     config = load_config(majora_token)    

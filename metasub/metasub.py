@@ -14,7 +14,7 @@ import meta
 import argparse
 from gather_plates import gather
 from check_meta import check_meta
-from submit_filedata import submit_filedata
+from submit_filedata import legacy_submit_filedata
 from generate_metasheet import generate_metasheet
 
 epi = "Licence: " + meta.__licence__ +  " by " +meta.__author__ + " <" +meta.__author_email__ + ">"
@@ -29,15 +29,14 @@ def sync_meta_option(args):
     # Checks local metadata with COG metadata is consistent 
     check_meta(args.majora_token, args.sheet_name, args.submission_sheet, args.gcredentials)
 
-def submit_filedata_option(args):
+def legacy_submit_filedata_option(args):
     # Sends files from sequencing run to COG 
-    submit_filedata(args.sheet_name, args.submission_sheet, args.gcredentials, args.datadir)
+    legacy_submit_filedata(args.datadir, args.run_name, args.majora_token)
 
 def generate_metasheet_option(args):
     # Generates metadata sheet for submission. 
     generate_metasheet()
 
-   
 if __name__ == '__main__':
     start_time = time.time()
     log.setLevel(logging.INFO)
@@ -62,10 +61,13 @@ if __name__ == '__main__':
     sync_parser.add_argument('--majora_token', action='store', default='majora.json', help='Path to MAJORA COG API credentials (JSON)')
     sync_parser.set_defaults(func=sync_meta_option)
     
-    # Submit parser
-    submit_filedata_parser = subparsers.add_parser('submit_files', help='Sends files from sequencing run to COG ')
-    submit_filedata_parser.add_argument('--datadir', action='store', help='Location of data output; will ignore google sheet')
-    submit_filedata_parser.set_defaults(func=submit_filedata_option)
+    # LEGACY Submit parser
+    legacy_submit_filedata_parser = subparsers.add_parser('legacy_submit_files', help='Sends files from sequencing run to COG ')
+    legacy_submit_filedata_parser.add_argument('datadir', action='store', help='Location of data output; will ignore google sheet')
+    legacy_submit_filedata_parser.add_argument('run_name', action='store', help='Run name to submit')
+    legacy_submit_filedata_parser.add_argument('--majora_token', action='store', default='majora.json', help='Path to MAJORA COG API credentials (JSON)')
+    legacy_submit_filedata_parser.set_defaults(func=legacy_submit_filedata_option)
+    
 
     # Metasheet parser 
     generate_metasheet_parser = subparsers.add_parser('generate_sheet', help='Generates metadata sheet for submission')

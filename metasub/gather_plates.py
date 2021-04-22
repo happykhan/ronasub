@@ -29,7 +29,10 @@ import logging
 epi = "Licence: " + meta.__licence__ +  " by " +meta.__author__ + " <" +meta.__author_email__ + ">"
 
 def gather():
+<<<<<<< HEAD
     logging.info('Not implemented')
+=======
+>>>>>>> ff4a45f86a25f238ac72d7456c803d755bbba59f
     print('central_sample_id,library_name,run_name,sequencing_date,upload_date,plate_failed,metadata_sync,is_submitted_to_cog,type,plate,consensus_constructed,basic_qc,high_quality_qc')
 
     sampleName2Project=dict()

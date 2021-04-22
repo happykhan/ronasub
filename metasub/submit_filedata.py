@@ -1,102 +1,78 @@
 
 import logging 
 import os 
+import re 
+import csv 
+from climbfiles import ClimbFiles
+import json 
 
-def read_illumina_dirs(output_dir_bams, output_dir_consensus, uploadlist, blacklist, climb_server_conn, climb_run_directory):
-    found_samples = []
-    for x in os.listdir(output_dir_bams):
-        if x.startswith('NORW') and x.endswith('sorted.bam'):
-            sample_name = x.split('_')[0]
-            if sample_name.endswith('crude-prep'):
-                continue
+def load_config(config="majora.json"):
+    config_dict = json.load(open(config))
+    return config_dict
+
+def get_file_paths(datadir):
+    found_samples = [] 
+    output_dir_uploadlist = os.path.join(datadir, 'uploadlist')
+    output_dir_blacklist = os.path.join(datadir, 'blacklist')
+    uploadlist = None
+    blacklist = None
+    if os.path.exists(output_dir_uploadlist):
+        uploadlist = [x.strip() for x in open(output_dir_uploadlist).readlines()]
+    if os.path.exists(output_dir_blacklist):
+        blacklist = [x.strip() for x in open(output_dir_blacklist).readlines()]  
+    qc_files = [os.path.join(datadir, x) for x in os.listdir(datadir) if x.endswith('.qc.csv')] 
+    if len(qc_files) == 1:
+        for row in csv.DictReader(open(qc_files[0])):
+            sample_name = row['sample_name']
+            # Handle the _S123 suffix on the sample name if any. 
+            S_suffix = re.match('(.+)_S\d+', sample_name)
+            if S_suffix:
+                sample_name = S_suffix.group(1)
             if uploadlist: 
                 if not sample_name in uploadlist:
                     logging.info('Skipping ' + sample_name)
-                    continue
+                    continue                
             if blacklist:
                 if sample_name in blacklist:
                     logging.info('Skipping ' + sample_name)
                     continue
-            bam_file = os.path.join(output_dir_bams, x)
-            
-            # Locate fasta file 
-            fasta_file = [x for x in os.listdir(output_dir_consensus) if x.startswith(sample_name)]
-            if len(fasta_file) == 1:
-                fa_file_path = os.path.join(output_dir_consensus, fasta_file[0])
-                # TODO make sure the sample name is valid 
-                climb_sample_directory = os.path.join(climb_run_directory, sample_name)
-                climb_server_conn.create_climb_dir(climb_sample_directory)
-                climb_server_conn.put_file(fa_file_path, climb_sample_directory)
-                climb_server_conn.put_file(bam_file, climb_sample_directory)
-                found_samples.append(sample_name)
-            elif len(fasta_file) == 0:
-                logging.error('No fasta file!')
-            else:
-                logging.error('Multiple fasta file!')
-    return found_samples
-
-def read_ont_dirs(output_dir_bams, output_dir_consensus, uploadlist, blacklist, climb_server_conn, climb_run_directory):
-    found_samples = []
-    for x in os.listdir(output_dir_bams):
-        sample_dir_match = re.match('(NORW-\w{5,6})', x)
-#        valid_bam_match = re.match('(NORW-\w{5,6}).sorted.bam', x)
-        if sample_dir_match: 
-            sample_name = sample_dir_match.group(1)
-            if uploadlist: 
-                if not sample_name in uploadlist:
-                    continue
-            if blacklist:
-                if sample_name in blacklist:
-                    logging.info('Skipping ' + sample_name)
-                    continue
-            bam_file = os.path.join(output_dir_bams, sample_name, sample_name + '.sorted.bam')
-            
-            # Locate fasta file 
-            fasta_file = [os.path.join(output_dir_consensus, sample_name, sample_name + '.consensus.fasta') for x in os.listdir(output_dir_consensus) if x == f'{sample_name}' ]
-            if len(fasta_file) == 1:
-                if os.path.exists(fasta_file[0]):
-                    fa_file_path = os.path.join(output_dir_consensus, fasta_file[0])
-                    # TODO make sure the sample name is valid 
-                    climb_sample_directory = os.path.join(climb_run_directory, sample_name)
-                    climb_server_conn.create_climb_dir(climb_sample_directory)
-                    climb_server_conn.put_file(fa_file_path, climb_sample_directory)
-                    climb_server_conn.put_file(bam_file, climb_sample_directory)
-                    found_samples.append(sample_name)
+            run_name = [x for x in os.listdir( os.path.join(datadir, 'qc_climb_upload') )][0]
+            output_dir_consensus = os.path.join(datadir, 'qc_climb_upload', run_name, row['sample_name'], row['fasta'])
+            output_dir_bam = os.path.join(datadir, 'qc_climb_upload', run_name, row['sample_name'], row['bam'])
+            found_sample = dict(sample_name=sample_name, fasta=output_dir_consensus, bam=output_dir_bam)
+            if os.path.exists(found_sample['bam']) and os.path.exists(found_sample['fasta']):
+                found_samples.append(found_sample)
+            else: 
+                # Try alternate filename for bam. 
+                found_sample['bam'] = os.path.join(datadir, 'qc_climb_upload', run_name, row['sample_name'], row['sample_name'] + '.mapped.bam') 
+                if os.path.exists(found_sample['bam']) and os.path.exists(found_sample['fasta']):
+                    found_samples.append(found_sample)                
                 else:
-                    logging.error('No fasta file for ' + sample_name)
-            elif len(fasta_file) == 0:
-                logging.error('No fasta file for ' + sample_name)
-            else:
-                logging.error('Multiple fasta file!')
-    return found_samples    
+                    logging.error(f'Could not locate bam and fasta for {sample_name} in {datadir}')
+        return found_samples
+    else:
+        logging.error(f'Multiple QC files in dir {datadir}')
+        return None 
 
+def legacy_submit_filedata(datadir, run_name, majora_token):
 
-def submit_filedata(sheet_name, submission_sheet, gcredentials, datadir):
+    # If a datadir is given, just upload the files. (legacy method)
 
-    if datadir: 
-        # If a datadir is given, just upload the files. (legacy method)
-        illumina = True
-        if illumina:
-            found_samples = read_illumina_dirs
-        else:
-            found_samples = read_ont_dirs
-        
-        fasta_file = [os.path.join(output_dir_consensus, sample_name, sample_name + '.consensus.fasta') for x in os.listdir(output_dir_consensus) if x == f'{sample_name}' ]
-        if len(fasta_file) == 1:
-            if os.path.exists(fasta_file[0]):
-                fa_file_path = os.path.join(output_dir_consensus, fasta_file[0])
-                # TODO make sure the sample name is valid 
-                climb_sample_directory = os.path.join(climb_run_directory, sample_name)
-                climb_server_conn.create_climb_dir(climb_sample_directory)
-                climb_server_conn.put_file(fa_file_path, climb_sample_directory)
-                climb_server_conn.put_file(bam_file, climb_sample_directory)
-                found_samples.append(sample_name)
+    found_samples = get_file_paths(datadir)
+    if found_samples:
+        config = load_config(majora_token)
+        climb_file_server = config['climb_file_server']
+        climb_username = config['climb_username']     
+        climb_server_conn = ClimbFiles(climb_file_server, climb_username)
+        climb_server_conn.create_climb_dir('upload')
+        climb_run_directory = os.path.join('upload', run_name)
+        for sample in found_samples: 
+            climb_sample_directory = os.path.join(climb_run_directory, sample['sample_name'])
+            climb_server_conn.create_climb_dir(climb_sample_directory)        
+            climb_server_conn.put_file(sample['fasta'], climb_sample_directory)
+            climb_server_conn.put_file(sample['bam'], climb_sample_directory)
     else: 
-        pass
-        # Open submission sheet, select run name or library name 
-        
-
-
+        logging.error(f'No samples found in {datadir}')
 
 
 
