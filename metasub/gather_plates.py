@@ -25,7 +25,12 @@ import os.path
 import logging 
 
 def gather():
+<<<<<<< HEAD
+    logging.info('Not implemented')
+    print('central_sample_id,library_name,run_name,sequencing_date,upload_date,plate_failed,metadata_sync,is_submitted_to_cog,type,plate,consensus_constructed,basic_qc,high_quality_qc')
+=======
     print('central_sample_id,library_name,run_name,sequencing_date,plate,called,type,consensus_constructed,basic_qc,high_quality_qc')
+>>>>>>> 7a3d72c5b8267f73b1e1b38fd59172b68d8876d9
 
     sampleName2Project=dict()
     sampleName2Called=dict()
@@ -160,7 +165,9 @@ def gather():
                                             if central_sample in consensus_sequence_name:
                                                 consensus_exists='True'
 
-                                        print(central_sample + ',' + library_name + ',' + sampleName2RunName[central_sample] + ',' + sampleName2SequencingDate[central_sample] + ',' + sampleName2Plate[central_sample] + ',' + sampleName2Called[central_sample] + ',' + sampleName2Project[central_sample] + ',' + consensus_exists + ',' + fields[12] + ',' + fields[13])
+                                        # central_sample_id,library_name,run_name,sequencing_date,upload_date,plate_failed,metadata_sync,is_submitted_to_cog,type,plate,consensus_constructed,basic_qc,high_quality_qc
+
+                                        print(central_sample + ',' + library_name + ',' + sampleName2RunName[central_sample] + ',' + sampleName2SequencingDate[central_sample] + ',,,,,' + sampleName2Project[central_sample] + ',' + sampleName2Plate[central_sample] + ',' + consensus_exists + ',' + fields[12] + ',' + fields[13])
                       #              else:
                       #                  print(central_sample + ',Not found')
 
