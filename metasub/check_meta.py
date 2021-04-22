@@ -13,6 +13,9 @@ import requests
 from oauth2client.service_account import ServiceAccountCredentials
 import gspread
 from marshmallow import EXCLUDE
+from climbfiles import ClimbFiles
+import os 
+from submit_schema import  Samplemeta
 
 def add_missing_rows(submission_sheet_name, gcredentials): 
     scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
@@ -36,14 +39,17 @@ def add_missing_rows(submission_sheet_name, gcredentials):
 
 
 def check_meta(majora_token, sheet_name, submission_sheet_name, gcredentials):
-   
-    all_submitted = {} 
+    # Fetch metadata from remote
+    config = load_config(majora_token)    
+    climb_file_server = config['climb_file_server']
+    climb_username = config['climb_username'] 
+    climb_server_conn = ClimbFiles(climb_file_server, climb_username)
+    cog_metadata = climb_server_conn.get_metadata('temp/')
+    cog_matched_metadata = climb_server_conn.get_metadata('temp/', matched=True)
 
     add_missing_rows(submission_sheet_name, gcredentials)
 
-    majora_token = "majora.json"
     config = load_config(majora_token)
-    majora_username = config['majora_username']
     scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
     creds = ServiceAccountCredentials.from_json_keyfile_name(gcredentials, scope)
     client = gspread.authorize(creds)
@@ -61,21 +67,23 @@ def check_meta(majora_token, sheet_name, submission_sheet_name, gcredentials):
         sample_name = x.get('central_sample_id')
         if sample_name:
             if sample_name in row_position:
-                results = majora_sample_exists(sample_name, majora_username, config['majora_token'], config['majora_server'], False)
                 cog_value = ""
-                if results:
+                if sample_name in cog_metadata.keys():
                     cog_value = "YES"
-                    all_submitted[results[0]] = results[0]
+                   # local = Samplemeta(unknown = EXCLUDE).load(x)                
+                 #   remote =  Samplemeta(unknown = EXCLUDE).load(cog_metadata[sample_name])       
+                    # shared_items = {k: x[k] for k in x if k in cog_metadata[sample_name] and x[k] == cog_metadata[sample_name][k]}
+                    # TODO: Should check record values of COG versus local copy. 
+                    if sample_name not in cog_matched_metadata.keys():
+                        partial_value = 'YES'
+                    else:
+                        partial_value = ''
+                cells_to_update.append(gspread.models.Cell(row=row_position.index(x['central_sample_id'])+1, col=column_position.index('is_submitted_to_cog')+1, value=cog_value))
+                cells_to_update.append(gspread.models.Cell(row=row_position.index(x['central_sample_id'])+1, col=column_position.index('partial_submission')+1, value=partial_value))
                 
-                cells_to_update.append(gspread.models.Cell(row=row_position.index(x['central_sample_id'])+1, col=column_position.index('is_submitted_to_cog')+1, value=cog_value))            
-
     if cells_to_update:
         print('Updating values')
-        submission_sheet.update_cells(cells_to_update)   
-    print(f'central_sample_id\tbiosample_id')
-    for x,y  in all_submitted.items(): 
-        print(f'{x}\t{y}')
-       
+        submission_sheet.update_cells(cells_to_update)          
 
 
 def load_config(config="majora.json"):

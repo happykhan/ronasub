@@ -1,6 +1,8 @@
 import paramiko
 import logging 
 import os 
+import time 
+import csv 
 
 class ClimbFiles():
 
@@ -31,3 +33,23 @@ class ClimbFiles():
             logging.debug(f'sending file {filename}')
             self.sftp.put(filename, remote_file_path) 
         return remote_file_path
+
+    def get_metadata(self, outdir, matched=False):
+        if matched:
+            local_file = 'majora.latest.metadata.matched.tsv'
+        else: 
+            local_file = 'majora.latest.metadata.tsv'
+        remote_file_path = os.path.join('/cephfs/covid/bham/artifacts/published/', local_file)
+        local_copy =  os.path.join(outdir, local_file)
+        local_ok = False
+        if os.path.exists(local_copy):
+            if os.stat(local_copy).st_size > 0 :
+                if os.path.getctime(local_copy) > (time.time() - 60*60*8):
+                    logging.info('File is recent, using local')
+                    local_ok = True
+        if not local_ok:
+            logging.info('File is old or missing, fetching.. ')
+            self.sftp.get(remote_file_path, local_copy) 
+            logging.info(f'Fetched to {local_copy}')
+        meta = {x['central_sample_id']: x for x in csv.DictReader(open(local_copy), dialect=csv.excel_tab)}
+        return meta 

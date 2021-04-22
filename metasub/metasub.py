@@ -31,7 +31,7 @@ def sync_meta_option(args):
 
 def submit_filedata_option(args):
     # Sends files from sequencing run to COG 
-    submit_filedata(args.majora_token, args.sheet_name,  args.gcredentials)
+    submit_filedata(args.sheet_name, args.submission_sheet, args.gcredentials, args.datadir)
 
 def generate_metasheet_option(args):
     # Generates metadata sheet for submission. 
@@ -60,10 +60,11 @@ if __name__ == '__main__':
     sync_parser = subparsers.add_parser('check_sync', help='Checks local metadata with COG metadata is consistent')
     sync_parser.add_argument('--ont', action='store_true', default=False, help='Is the output directory from nanopore')
     sync_parser.add_argument('--majora_token', action='store', default='majora.json', help='Path to MAJORA COG API credentials (JSON)')
-    sync_parser.set_defaults(func=sync_meta_option)    
+    sync_parser.set_defaults(func=sync_meta_option)
     
     # Submit parser
     submit_filedata_parser = subparsers.add_parser('submit_files', help='Sends files from sequencing run to COG ')
+    submit_filedata_parser.add_argument('--datadir', action='store', help='Location of data output; will ignore google sheet')
     submit_filedata_parser.set_defaults(func=submit_filedata_option)
 
     # Metasheet parser 
