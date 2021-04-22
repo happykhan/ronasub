@@ -66,7 +66,7 @@ if __name__ == '__main__':
     legacy_submit_filedata_parser.add_argument('datadir', action='store', help='Location of data output; will ignore google sheet')
     legacy_submit_filedata_parser.add_argument('run_name', action='store', help='Run name to submit')
     legacy_submit_filedata_parser.add_argument('--platform', action='store', help='Sequencing platform; will ignore google sheet, default ILLUMINA', default='ILLUMINA')
-    sync_parser.add_argument('--majora_token', action='store', default='majora.json', help='Path to MAJORA COG API credentials (JSON)')
+    legacy_submit_filedata_parser.add_argument('--majora_token', action='store', default='majora.json', help='Path to MAJORA COG API credentials (JSON)')
     legacy_submit_filedata_parser.set_defaults(func=legacy_submit_filedata_option)
     
 
