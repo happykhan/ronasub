@@ -31,7 +31,7 @@ def sync_meta_option(args):
 
 def legacy_submit_filedata_option(args):
     # Sends files from sequencing run to COG 
-    legacy_submit_filedata(args.datadir, args.run_name, args.platform, args.majora_token)
+    legacy_submit_filedata(args.datadir, args.run_name, args.majora_token)
 
 def generate_metasheet_option(args):
     # Generates metadata sheet for submission. 
@@ -65,7 +65,6 @@ if __name__ == '__main__':
     legacy_submit_filedata_parser = subparsers.add_parser('legacy_submit_files', help='Sends files from sequencing run to COG ')
     legacy_submit_filedata_parser.add_argument('datadir', action='store', help='Location of data output; will ignore google sheet')
     legacy_submit_filedata_parser.add_argument('run_name', action='store', help='Run name to submit')
-    legacy_submit_filedata_parser.add_argument('--platform', action='store', help='Sequencing platform; will ignore google sheet, default ILLUMINA', default='ILLUMINA')
     legacy_submit_filedata_parser.add_argument('--majora_token', action='store', default='majora.json', help='Path to MAJORA COG API credentials (JSON)')
     legacy_submit_filedata_parser.set_defaults(func=legacy_submit_filedata_option)
     
