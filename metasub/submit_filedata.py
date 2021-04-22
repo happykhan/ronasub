@@ -66,6 +66,7 @@ def legacy_submit_filedata(datadir, run_name, majora_token):
         climb_server_conn = ClimbFiles(climb_file_server, climb_username)
         climb_server_conn.create_climb_dir('upload')
         climb_run_directory = os.path.join('upload', run_name)
+        climb_server_conn.create_climb_dir(climb_run_directory)
         for sample in found_samples: 
             climb_sample_directory = os.path.join(climb_run_directory, sample['sample_name'])
             climb_server_conn.create_climb_dir(climb_sample_directory)        

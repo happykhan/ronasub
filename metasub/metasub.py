@@ -67,10 +67,10 @@ if __name__ == '__main__':
     legacy_submit_filedata_parser.add_argument('run_name', action='store', help='Run name to submit')
     legacy_submit_filedata_parser.add_argument('--majora_token', action='store', default='majora.json', help='Path to MAJORA COG API credentials (JSON)')
     legacy_submit_filedata_parser.set_defaults(func=legacy_submit_filedata_option)
-    
 
     # Metasheet parser 
     generate_metasheet_parser = subparsers.add_parser('generate_sheet', help='Generates metadata sheet for submission')
+    
     generate_metasheet_parser.set_defaults(func=generate_metasheet_option)
 
     args = parser.parse_args()
