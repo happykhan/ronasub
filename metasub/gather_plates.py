@@ -17,20 +17,20 @@ it should
 * then update the google sheet - coguksubmission status . add new records if not there, check library name, run name are as expected. """
 
 
+from nrp_util import get_google_session
 
-
+import meta
 import os
 import os.path
+import argparse
 
-import logging 
+import logging
+
+epi = "Licence: " + meta.__licence__ +  " by " +meta.__author__ + " <" +meta.__author_email__ + ">"
 
 def gather():
-<<<<<<< HEAD
     logging.info('Not implemented')
     print('central_sample_id,library_name,run_name,sequencing_date,upload_date,plate_failed,metadata_sync,is_submitted_to_cog,type,plate,consensus_constructed,basic_qc,high_quality_qc')
-=======
-    print('central_sample_id,library_name,run_name,sequencing_date,plate,called,type,consensus_constructed,basic_qc,high_quality_qc')
->>>>>>> 7a3d72c5b8267f73b1e1b38fd59172b68d8876d9
 
     sampleName2Project=dict()
     sampleName2Called=dict()
@@ -171,5 +171,23 @@ def gather():
                       #              else:
                       #                  print(central_sample + ',Not found')
 
+
+def update_sample_meta(new_data, client, sheet_name='COGUK_submission_status', force_update = True):
+#    messages = [] 
+#    old = None 
+    sheet = client.open(sheet_name).sheet1
+    all_values = sheet.get_all_records()
+    print(all_values)
+    #column_position = sheet.row_values(1)
+    #row_position = sheet.col_values(1)
+    #no_bio_meta_data = set(row_position) - set([x['central_sample_id'] for x in new_data.values()])
+
+
 if __name__ == '__main__':
-    gather()
+    #gather() # Make a CSV file of everything
+    # Add any missing data, overwrite empty values..
+    
+    client = get_google_session(args.gcredentials)
+    new_dict, errors = get_bio_metadata(client)
+    update_sample_meta(new_dict, client, force_update = False)
+    
