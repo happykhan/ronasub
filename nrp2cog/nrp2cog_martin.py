@@ -13,6 +13,7 @@ import argparse
 import sys
 import meta
 import csv
+import gspread
 
 from nrp_util import get_google_session
 from update_surv import get_surv_metadata, update_surv_meta
@@ -80,25 +81,68 @@ def update_sample_meta(args):
     client = get_google_session(args.gcredentials)
     sheet = client.open('COGUK_submission_status').get_worksheet(1) # Index from 0, get the second sheet.
     all_values = sheet.get_all_records()
+    
+    sample2keyValues=dict()
+    for key2value in all_values:
+        key = str(key2value['central_sample_id']) + str(key2value['library_name'])
+        sample2keyValues[key] = key2value
+
+    # Then iterate through the cells for the row and update accordingly
+    
     column_position = sheet.row_values(1)
     row_position = sheet.col_values(1)
 
     new_rows=list()
+    cells_to_update=list()
+    first_row=True
+    index2key=dict()
     with open('../metasub/gather_plates.csv') as csvfile:
         csvreader = csv.reader(csvfile)
         for row in csvreader:
-            new_rows.append(row)
+            if first_row==True:
+                for i in range(0,len(row)):
+                    index2key[i] = row[i]
+                first_row=False
+            else:
+                key = str(row[0]) + str(row[1])
+                if key not in sample2keyValues.keys(): # Add this new row
+                    new_rows.append(row)
+                else: # This row already exists, check if there is anything to update...
+                    old_data = sample2keyValues[key]
 
+                    new_data=dict()
+                    for i in range(0,len(row)):
+                        if i<len(index2key):
+                            new_data[index2key[i]] = row[i]
+
+                    for old_key in old_data.keys():
+                        if old_key in new_data.keys() and not str(old_data[old_key])==str(new_data[old_key]):
+                            changed=True
+                            if isinstance(old_data[old_key], int):
+                                changed = int(old_data[old_key])!=int(new_data[old_key])
+                                
+                            if changed==True:
+                                print('Change found for sample [' + key + '] with field [' + old_key + '] [' + str(old_data[old_key]) + '] -> [' + str(new_data[old_key]) + ']')
+                                cells_to_update.append(gspread.models.Cell(row=list(sample2keyValues.keys()).index(key)+2, col=list(old_data.keys()).index(old_key)+1, value=new_data[old_key]))
+            
+    print('Adding ' + str(len(new_rows)) + ' rows')
+
+    # Currently the fields are slightly different...delete and push again if the columns are correct
+    
     #new_rows=[['new row 1','column2'],['new row 2'],['new row 3']]
     # Now try updating that sheet...
-    sheet.resize(len(row_position))
+    sheet.resize(len(row_position)) # Trim any whitespace at the end of the sheet...
 #    values = [[x] for x in missing_rows_names]
     sheet.append_rows(new_rows)
+
+    if cells_to_update:
+        print('Updating values')
+        sheet.update_cells(cells_to_update)
+    
     all_values = sheet.get_all_records()
     column_position = sheet.row_values(1)
     row_position = sheet.col_values(1)
 
-    #print(all_values)
     
 if __name__ == '__main__':
     start_time = time.time()
