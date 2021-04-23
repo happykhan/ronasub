@@ -79,7 +79,7 @@ def update_civet_option(args):
 
 def update_sample_meta(args):
     client = get_google_session(args.gcredentials)
-    sheet = client.open('COGUK_submission_status').get_worksheet(1) # Index from 0, get the second sheet.
+    sheet = client.open('COGUK_submission_status').get_worksheet(0) # Index from 0, get the second sheet.
     all_values = sheet.get_all_records()
     
     sample2keyValues=dict()
@@ -118,10 +118,10 @@ def update_sample_meta(args):
                     for old_key in old_data.keys():
                         if old_key in new_data.keys() and not str(old_data[old_key])==str(new_data[old_key]):
                             changed=True
-                            if isinstance(old_data[old_key], int):
+                            if isinstance(old_data[old_key], int) and not new_data[old_key]=='':
                                 changed = int(old_data[old_key])!=int(new_data[old_key])
                                 
-                            if changed==True and len(old_data[old_key])==0: # Only update blank cells
+                            if changed==True: # and len(old_data[old_key])==0: # Only update blank cells
                                 print('Change found for sample [' + key + '] with field [' + old_key + '] [' + str(old_data[old_key]) + '] -> [' + str(new_data[old_key]) + ']')
                                 cells_to_update.append(gspread.models.Cell(row=list(sample2keyValues.keys()).index(key)+2, col=list(old_data.keys()).index(old_key)+1, value=new_data[old_key]))
             
@@ -143,6 +143,49 @@ def update_sample_meta(args):
     column_position = sheet.row_values(1)
     row_position = sheet.col_values(1)
 
+
+def summarise_plates(args):
+    client = get_google_session(args.gcredentials)
+    sheet = client.open('COGUK_submission_status').get_worksheet(0) # Index from 0, get the second sheet.
+    all_values = sheet.get_all_records()
+
+    print('plate_name\tsequencing_date\tnumber_of_samples\tpercentage_passed\tpercentage_hc_passed')
+
+    plate2date=dict()
+    plate2number_of_samples=dict()
+    plate2passes=dict()
+    plate2hc_passes=dict()
+    
+    for key2value in all_values:
+        plate_name = str(key2value['plate'])
+        sequencing_date = str(key2value['sequencing_date'])
+        basic_qc = str(key2value['basic_qc'])
+        high_quality_qc = str(key2value['high_quality_qc'])
+
+        if not plate_name in plate2date.keys(): plate2date[plate_name] = set()
+        plate2date[plate_name].add(sequencing_date)
+        
+        if not plate_name in plate2number_of_samples.keys(): plate2number_of_samples[plate_name]=1
+        else:  plate2number_of_samples[plate_name]=plate2number_of_samples[plate_name]+1
+        
+        if basic_qc=='True':
+            if not plate_name in plate2passes.keys(): plate2passes[plate_name]=1
+            else:  plate2passes[plate_name]=plate2passes[plate_name]+1
+
+        if high_quality_qc=='True':
+            if not plate_name in plate2hc_passes.keys(): plate2hc_passes[plate_name]=1
+            else:  plate2hc_passes[plate_name]=plate2hc_passes[plate_name]+1
+
+    for plate_name in sorted(plate2date.keys()):
+        passes=0
+        if plate_name in plate2passes.keys(): passes = plate2passes[plate_name]
+        percentage_passes = (passes*100)/plate2number_of_samples[plate_name]
+
+        hc_passes=0
+        if plate_name in plate2hc_passes.keys(): hc_passes = plate2hc_passes[plate_name]
+        hc_percentage_passes = (hc_passes*100)/plate2number_of_samples[plate_name]
+
+        if plate2number_of_samples[plate_name]>1: print(plate_name + '\t' + str(list(plate2date[plate_name])) + '\t' + str(plate2number_of_samples[plate_name]) + '\t' + "{:.2f}".format(percentage_passes) + '%\t' + "{:.2f}".format(hc_percentage_passes) + '%')
     
 if __name__ == '__main__':
     start_time = time.time()
@@ -156,8 +199,10 @@ if __name__ == '__main__':
     parser.add_argument('--maindata', action='store', default='SARCOV2-Metadata',  help='Name of Master Table in Google sheets')
 
     meta_parser = subparsers.add_parser('update_sample_metadata', help='Update sample metadata')
-    #meta_parser.add_argument('--metadata', action='store', default='COG-UK Raw Metadata',  help='Name of Master Table in Google sheets')
     meta_parser.set_defaults(func=update_sample_meta)
+
+    meta_parser = subparsers.add_parser('summarise_plates', help='Summarise plates')
+    meta_parser.set_defaults(func=summarise_plates)
     
     args = parser.parse_args()
     if args.verbose: 
