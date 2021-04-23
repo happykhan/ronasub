@@ -66,14 +66,16 @@ def gather():
                         for line in lines:
                             fields = line.rstrip().split(',')
                             sampleName = fields[0]
+                            key = fields[0] + directory[:6] # central_sampleid+date
+                            
                             if len(fields)>7:
-                                sampleName2SequencingDate[sampleName] = sequencing_date
-                                sampleName2RunName[sampleName] = str(directory)
-                                sampleName2Project[sampleName] = fields[len(fields)-1]
-                                sampleName2Called[sampleName] = fields[2]
+                                sampleName2SequencingDate[key] = sequencing_date
+                                sampleName2RunName[key] = str(directory)
+                                sampleName2Project[key] = fields[len(fields)-1]
+                                sampleName2Called[key] = fields[2]
 
                                 # Firstly try to infer the plate name from the sample name
-                                if sampleName[:8]=='ARCH-000' or sampleName[:8]=='ARCH_000': sampleName2Plate[sampleName] = sampleName[8:11]
+                                if sampleName[:8]=='ARCH-000' or sampleName[:8]=='ARCH_000': sampleName2Plate[key] = sampleName[8:11]
                                 elif sampleName[:5]=='IPSOS':
                                     plate_name = sampleName[sampleName.index('_P')+2:]
 
@@ -83,7 +85,7 @@ def gather():
 
                                     if plate_name[-1:]=='_': plate_name = plate_name[:-1]
                                     
-                                    sampleName2Plate[sampleName] = plate_name
+                                    sampleName2Plate[key] = plate_name
                                 elif sampleName[:8]=='Re_array' or sampleName[:8]=='Re-array':
                                     if '_pl' in sampleName: plate_name = sampleName[sampleName.index('_pl')+3:]
                                     elif '_Pl' in sampleName: plate_name = sampleName[sampleName.index('_Pl')+3:]
@@ -98,9 +100,9 @@ def gather():
 
                                     if plate_name[-1:]=='_': plate_name = plate_name[:-1]
                                     
-                                    sampleName2Plate[sampleName] = plate_name
-                                elif fields[2] in called2plate.keys(): sampleName2Plate[sampleName] = called2plate[fields[2]]
-                                else: sampleName2Plate[sampleName] = "Unknown"
+                                    sampleName2Plate[key] = plate_name
+                                elif fields[2] in called2plate.keys(): sampleName2Plate[key] = called2plate[fields[2]]
+                                else: sampleName2Plate[key] = "Unknown"
 
 
 
@@ -152,7 +154,9 @@ def gather():
                                 else:
                                     fields = line.rstrip().split(',')
                                     central_sample = fields[0]
-                                    if central_sample in sampleName2RunName.keys():
+                                    date = directory[directory.rfind('.'):]
+                                    key = central_sample+date[3:9]
+                                    if key in sampleName2RunName.keys():
                                         consensus_exists='False'
 
                                         for consensus_sequence_name in consensus_sequence_names:
@@ -161,7 +165,7 @@ def gather():
 
                                         # central_sample_id,library_name,run_name,sequencing_date,upload_date,plate_failed,pag_count,pags,metadata_sync,is_submitted_to_cog,partial_submission,library_type,plate,consensus_constructed,basic_qc,high_quality_qc
 
-                                        print(central_sample + ',' + library_name + ',' + sampleName2RunName[central_sample] + ',' + sampleName2SequencingDate[central_sample] + ',,,,,,,,' + sampleName2Project[central_sample] + ',' + sampleName2Plate[central_sample] + ',' + consensus_exists + ',' + fields[12] + ',' + fields[13])
+                                        print(central_sample + ',' + library_name + ',' + sampleName2RunName[key] + ',' + sampleName2SequencingDate[key] + ',,,,,,,,' + sampleName2Project[key] + ',' + sampleName2Plate[key] + ',' + consensus_exists + ',' + fields[12] + ',' + fields[13])
                       #              else:
                       #                  print(central_sample + ',Not found')
 
