@@ -121,7 +121,7 @@ def update_sample_meta(args):
                             if isinstance(old_data[old_key], int):
                                 changed = int(old_data[old_key])!=int(new_data[old_key])
                                 
-                            if changed==True:
+                            if changed==True and len(old_data[old_key])==0: # Only update blank cells
                                 print('Change found for sample [' + key + '] with field [' + old_key + '] [' + str(old_data[old_key]) + '] -> [' + str(new_data[old_key]) + ']')
                                 cells_to_update.append(gspread.models.Cell(row=list(sample2keyValues.keys()).index(key)+2, col=list(old_data.keys()).index(old_key)+1, value=new_data[old_key]))
             
