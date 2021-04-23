@@ -29,7 +29,7 @@ def add_missing_rows(submission_sheet_name, gcredentials):
         sample_list = [] 
         for row in all_values:
             if row['central_sample_id'] not in submission_values:
-                if row['central_sample_id'] and row['run_name']:
+                if row['central_sample_id'] != '':
                     new_row = [row['central_sample_id'], row['library_name'], row['run_name']] 
                     sample_list.append(new_row)
         if sample_list:
@@ -37,6 +37,9 @@ def add_missing_rows(submission_sheet_name, gcredentials):
             submission_sheet.append_rows(sample_list)
 
 def check_meta(majora_token, sheet_name, submission_sheet_name, gcredentials):
+    # Update missing rows 
+    add_missing_rows(submission_sheet_name, gcredentials)
+
     # Fetch metadata from remote
     config = load_config(majora_token)    
     climb_file_server = config['climb_file_server']
@@ -44,8 +47,6 @@ def check_meta(majora_token, sheet_name, submission_sheet_name, gcredentials):
     climb_server_conn = ClimbFiles(climb_file_server, climb_username)
     cog_metadata = climb_server_conn.get_metadata('temp/')
     cog_matched_metadata = climb_server_conn.get_metadata('temp/', matched=True)
-
-    add_missing_rows(submission_sheet_name, gcredentials)
 
     config = load_config(majora_token)
     scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
@@ -60,25 +61,38 @@ def check_meta(majora_token, sheet_name, submission_sheet_name, gcredentials):
     submission_sheet = client.open(submission_sheet_name).sheet1
     column_position = submission_sheet.row_values(1)
     row_position = submission_sheet.col_values(1)
-
+    logging.info(f'loaded {len(all_values)} records from submission sheet {sheet_name}')
     for x in all_values:
         sample_name = x.get('central_sample_id')
-        if sample_name:
-            if sample_name in row_position:
-                cog_value = ""
-                if sample_name in cog_metadata.keys():
-                    cog_value = "YES"
-                   # local = Samplemeta(unknown = EXCLUDE).load(x)                
-                 #   remote =  Samplemeta(unknown = EXCLUDE).load(cog_metadata[sample_name])       
-                    # shared_items = {k: x[k] for k in x if k in cog_metadata[sample_name] and x[k] == cog_metadata[sample_name][k]}
-                    # TODO: Should check record values of COG versus local copy. 
-                    if sample_name not in cog_matched_metadata.keys():
-                        partial_value = 'YES'
-                    else:
-                        partial_value = ''
-                cells_to_update.append(gspread.models.Cell(row=row_position.index(x['central_sample_id'])+1, col=column_position.index('is_submitted_to_cog')+1, value=cog_value))
-                cells_to_update.append(gspread.models.Cell(row=row_position.index(x['central_sample_id'])+1, col=column_position.index('partial_submission')+1, value=partial_value))
-                
+        if sample_name in row_position:
+            cog_value = ""
+            partial_value = ''
+            if cog_metadata.get(sample_name):
+                cog_value = "YES"
+                # local = Samplemeta(unknown = EXCLUDE).load(x)                
+                #   remote =  Samplemeta(unknown = EXCLUDE).load(cog_metadata[sample_name])       
+                # shared_items = {k: x[k] for k in x if k in cog_metadata[sample_name] and x[k] == cog_metadata[sample_name][k]}
+                # TODO: Should check record values of COG versus local copy. 
+                metadata_sync_errors = ''
+                if cog_metadata[sample_name]['run_name'] != x['run_name']:
+                    remote_run_name = cog_metadata[sample_name]['run_name']
+                    metadata_sync_errors += f'run name is {remote_run_name} on COG, '
+                if cog_metadata[sample_name]['biosample_source_id'] != x['biosample_source_id']:
+                    biosample_source_id = cog_metadata[sample_name]['biosample_source_id']
+                    metadata_sync_errors += f'run name is {biosample_source_id} on COG, '
+                if cog_metadata[sample_name]['library_name'] != x['library_name']:
+                    library_name = cog_metadata[sample_name]['library_name']
+                    metadata_sync_errors += f'run name is {library_name} on COG, '                        
+                cells_to_update.append(gspread.models.Cell(row=row_position.index(x['central_sample_id'])+1, col=column_position.index('upload_date')+1, value=cog_metadata[sample_name]['sequencing_submission_date']))
+                cells_to_update.append(gspread.models.Cell(row=row_position.index(x['central_sample_id'])+1, col=column_position.index('pags')+1, value=cog_metadata[sample_name]['published_as']))
+                cells_to_update.append(gspread.models.Cell(row=row_position.index(x['central_sample_id'])+1, col=column_position.index('pag_count')+1, value=len(cog_metadata[sample_name]['published_as'].split(','))))
+                cells_to_update.append(gspread.models.Cell(row=row_position.index(x['central_sample_id'])+1, col=column_position.index('metadata_sync')+1, value=metadata_sync_errors))
+                if sample_name not in cog_matched_metadata.keys():
+                    partial_value = 'YES'
+            cells_to_update.append(gspread.models.Cell(row=row_position.index(x['central_sample_id'])+1, col=column_position.index('is_submitted_to_cog')+1, value=cog_value))
+            cells_to_update.append(gspread.models.Cell(row=row_position.index(x['central_sample_id'])+1, col=column_position.index('partial_submission')+1, value=partial_value))
+        else:
+            logging.error(f'{sample_name} not found in submission sheet ')
     if cells_to_update:
         print('Updating values')
         submission_sheet.update_cells(cells_to_update)          
@@ -87,24 +101,3 @@ def check_meta(majora_token, sheet_name, submission_sheet_name, gcredentials):
 def load_config(config="majora.json"):
     config_dict = json.load(open(config))
     return config_dict
-
-def majora_sample_exists(sample_name, username, key, SERVER, dry = False):
-    address = SERVER + '/api/v2/artifact/biosample/get/'
-    payload = dict(central_sample_id=sample_name, username=username, token=key, client_name='cogsub', client_version='0.1')
-    response = requests.post(address, headers = {"Content-Type": "application/json", "charset": "UTF-8"}, json = payload)
-    try:
-        response_dict = json.loads(response.content)       
-        if response_dict['errors'] == 0:
-            central_sample_id = list(response_dict['get'].keys())[0] 
-            if not list(response_dict['get'].values())[0].get('biosample_sources'):
-                print(sample_name + ' has no biosample ')
-                return False
-            biosample_source = list(response_dict['get'].values())[0]['biosample_sources'][0]['biosample_source_id']            
-            return [central_sample_id, biosample_source]
-        else:
-            print(sample_name + ' appears to be missing ')
-            return False
-    except json.decoder.JSONDecodeError:
-        logging.error(response)
-        return False
-

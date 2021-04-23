@@ -139,46 +139,48 @@ def update_patient_id(client, sheet_name='SARCOV2-Metadata'):
     if cells_to_update:
         print('Updating values')
         sheet.update_cells(cells_to_update)
-    all_values = sheet.get_all_records()
-    # Reports 
-    with open('patient_groups.txt', 'w') as pat_out:
-        pat_out.write('PATIENT_GROUP\tCOGID\tDATE\tLINEAGE\tBASICQC\n')
-        group_sum = {}
-        for x in all_values:
-            pat = x['patient_group']
-            cog_id = x['central_sample_id']
-            if pat:
-                pat_out.write(f'{pat}\t{cog_id}\t{x["collection_date"]}\t{x["uk_lineage"]}\t{x["Basic QC"]}\n')
-                if group_sum.get(pat):
-                    group_sum[pat]['count'] += 1
-                    group_sum[pat]['date_list'].append(x['collection_date'])
-                else:
-                    group_sum[pat] = dict(count=1, date_list = [x['collection_date']])
-        total_multiple_samples = sum([x['count'] for x in group_sum.values()])
-        multiple_dates = len([x for x,y in group_sum.items() if len(list(set(y['date_list']))) > 1])
-        print(f'TOTAL SAMPLES THAT ARE LINKED: {total_multiple_samples}')
-        print(f'TOTAL GROUPS THAT ARE LINKED: {len(group_sum)}')
-        print(f'TOTAL GROUPS THAT ARE LINKED (with different dates): {multiple_dates}')
-        from itertools import groupby
-        group_counts = sorted([x['count'] for x in group_sum.values() if x['count'] > 1])
-        group_counted = {key: len(list(group)) for key, group in groupby(group_counts)}
-        print('linked_samples_group\tFrequency')
-        plt.style.use('ggplot')
+    report = False 
+    if report:
+        all_values = sheet.get_all_records()
+        # Reports 
+        with open('patient_groups.txt', 'w') as pat_out:
+            pat_out.write('PATIENT_GROUP\tCOGID\tDATE\tLINEAGE\tBASICQC\n')
+            group_sum = {}
+            for x in all_values:
+                pat = x['patient_group']
+                cog_id = x['central_sample_id']
+                if pat:
+                    pat_out.write(f'{pat}\t{cog_id}\t{x["collection_date"]}\t{x["uk_lineage"]}\t{x["Basic QC"]}\n')
+                    if group_sum.get(pat):
+                        group_sum[pat]['count'] += 1
+                        group_sum[pat]['date_list'].append(x['collection_date'])
+                    else:
+                        group_sum[pat] = dict(count=1, date_list = [x['collection_date']])
+            total_multiple_samples = sum([x['count'] for x in group_sum.values()])
+            multiple_dates = len([x for x,y in group_sum.items() if len(list(set(y['date_list']))) > 1])
+            print(f'TOTAL SAMPLES THAT ARE LINKED: {total_multiple_samples}')
+            print(f'TOTAL GROUPS THAT ARE LINKED: {len(group_sum)}')
+            print(f'TOTAL GROUPS THAT ARE LINKED (with different dates): {multiple_dates}')
+            from itertools import groupby
+            group_counts = sorted([x['count'] for x in group_sum.values() if x['count'] > 1])
+            group_counted = {key: len(list(group)) for key, group in groupby(group_counts)}
+            print('linked_samples_group\tFrequency')
+            plt.style.use('ggplot')
 
-        plt.bar(group_counted.keys(), group_counted.values(), color='green')
-        plt.xlabel('No. of samples in a group')
-        plt.ylabel('Count')
-        plt.savefig('linked_samples_group.png')
-        plt.savefig('linked_samples_group.svg')
-        for x,y in group_counted.items():
-            print(f'{x}\t{y}')
-        group_date_count = sorted([len(list(set(y['date_list']))) for x,y in group_sum.items() if len(list(set(y['date_list']))) > 1])
-        group_counted = {key: len(list(group)) for key, group in groupby(group_date_count)}
-        print('linked_date_group\tFrequency')
-        for x,y in group_counted.items():
-            print(f'{x}\t{y}')
-        plt.bar(group_counted.keys(), group_counted.values(), color='green')
-        plt.xlabel('No. of samples in a group')
-        plt.ylabel('Count')
-        plt.savefig('linked_date_group.png')
-        plt.savefig('linked_date_group.svg')        
+            plt.bar(group_counted.keys(), group_counted.values(), color='green')
+            plt.xlabel('No. of samples in a group')
+            plt.ylabel('Count')
+            plt.savefig('linked_samples_group.png')
+            plt.savefig('linked_samples_group.svg')
+            for x,y in group_counted.items():
+                print(f'{x}\t{y}')
+            group_date_count = sorted([len(list(set(y['date_list']))) for x,y in group_sum.items() if len(list(set(y['date_list']))) > 1])
+            group_counted = {key: len(list(group)) for key, group in groupby(group_date_count)}
+            print('linked_date_group\tFrequency')
+            for x,y in group_counted.items():
+                print(f'{x}\t{y}')
+            plt.bar(group_counted.keys(), group_counted.values(), color='green')
+            plt.xlabel('No. of samples in a group')
+            plt.ylabel('Count')
+            plt.savefig('linked_date_group.png')
+            plt.savefig('linked_date_group.svg')        
