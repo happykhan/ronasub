@@ -5,6 +5,8 @@ import re
 import csv 
 from climbfiles import ClimbFiles
 import json 
+import  gspread
+from oauth2client.service_account import ServiceAccountCredentials
 
 def load_config(config="majora.json"):
     config_dict = json.load(open(config))
@@ -76,4 +78,37 @@ def legacy_submit_filedata(datadir, run_name, majora_token):
         logging.error(f'No samples found in {datadir}')
 
 
+def submit_filedata(datadir, gcredentials, majora_token, submission_sheet_name, library_type, plate_names):
 
+    plate_name_list = plate_names.split(',')
+
+    scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
+    creds = ServiceAccountCredentials.from_json_keyfile_name(gcredentials, scope)
+    client = gspread.authorize(creds)
+
+    # Use submission status to fetch output dirs & samples to use 
+    submission_sheet = client.open(submission_sheet_name).worksheet('Sheet2')
+    all_values = submission_sheet.get_all_records()
+    run_names = [] 
+    sample_names = []
+    for x in all_values:
+        if x.get('library_type') == library_type and x.get('run_name') != '' :
+            if x.get('plate') in plate_name_list:
+                sample_names.append(x.get('central_sample_id'))
+                run_names.append(x.get('run_name'))
+    # Create upload list files 
+    run_names = list(set(run_names))
+    if len(run_names) == 1:
+        run_name = run_names[0]
+        upload_path = os.path.join(datadir, "uploadlist")
+        with open(upload_path, 'w') as j: 
+            j.write('\n'.join(sample_names))
+        legacy_submit_filedata(datadir, run_name, majora_token)
+    else:
+        logging.error('Mulitple run names ')
+
+
+
+if __name__ == '__main__':
+    submit_filedata('/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20210421', 'credentials.json', 'majora.json', 'COGUK_submission_status', 'COG', 'COG106,COG107')
+    submit_filedata('/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20210421-Boat', 'credentials.json', 'majora.json', 'COGUK_submission_status', 'Boat', 'COG108')
