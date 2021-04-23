@@ -23,6 +23,8 @@ region_to_county = {
 }
 
 class Samplemeta(Schema):
+    class Meta:
+        dateformat = '%Y-%m-%d'
 
     central_sample_id = fields.Str(required=True)
     adm1 = fields.Str(missing='UK-ENG')

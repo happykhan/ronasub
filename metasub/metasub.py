@@ -27,7 +27,7 @@ def plates_parser_option(args):
 
 def sync_meta_option(args):
     # Checks local metadata with COG metadata is consistent 
-    check_meta(args.majora_token, args.sheet_name, args.submission_sheet, args.gcredentials)
+    check_meta(args.majora_token, args.submission_sheet, args.gcredentials)
 
 def legacy_submit_filedata_option(args):
     # Sends files from sequencing run to COG 
