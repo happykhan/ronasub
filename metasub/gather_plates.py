@@ -23,7 +23,6 @@ import os.path
 import logging
 
 def gather():
-    logging.info('Not implemented')
     print('central_sample_id,library_name,run_name,sequencing_date,upload_date,plate_failed,pag_count,pags,metadata_sync,is_submitted_to_cog,partial_submission,library_type,plate,consensus_constructed,basic_qc,high_quality_qc')
 
     sampleName2Project=dict()

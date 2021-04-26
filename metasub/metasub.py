@@ -23,7 +23,7 @@ log = logging.getLogger()
 
 def plates_parser_option(args):
     # Reads output dir and fetches samples with plate info 
-    gather(args.majora_token, args.datadir, args.runname, args.sheet_name,  args.gcredentials, args.ont)
+    gather()
 
 def sync_meta_option(args):
     # Checks local metadata with COG metadata is consistent 
@@ -52,7 +52,6 @@ if __name__ == '__main__':
     
     # Plates parser
     plates_parser = subparsers.add_parser('check_plates', help='Reads output dir and fetches samples with plate info ')
-    plates_parser.add_argument('datadir', action='store', help='Location of all sequencing data')    
     plates_parser.set_defaults(func=plates_parser_option)
 
     # Sync parser

@@ -55,7 +55,6 @@ def generate_metasheet(outputdir, datadir, gcredentials, sheet_name, submission_
                     lib_record = SeqMeta(unknown = EXCLUDE).load(x)
                     clean_record.update(json.loads(json.dumps(lib_record, default=str)))
                 out_do.writerow(clean_record)
-        
     else:
         logging.error('Mulitple run names ')
 
