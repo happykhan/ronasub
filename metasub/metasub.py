@@ -56,7 +56,6 @@ if __name__ == '__main__':
 
     # Sync parser
     sync_parser = subparsers.add_parser('check_sync', help='Checks local metadata with COG metadata is consistent')
-    sync_parser.add_argument('--ont', action='store_true', default=False, help='Is the output directory from nanopore')
     sync_parser.add_argument('--majora_token', action='store', default='majora.json', help='Path to MAJORA COG API credentials (JSON)')
     sync_parser.set_defaults(func=sync_meta_option)
     

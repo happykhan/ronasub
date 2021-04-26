@@ -7,8 +7,9 @@ from marshmallow import EXCLUDE
 import os 
 import json
 import csv 
+from datetime import datetime
 
-def generate_metasheet(outputdir, datadir, gcredentials, sheet_name, submission_sheet_name, library_type, plate_names, sample_only=False):
+def generate_metasheet(outputdir, datadir, gcredentials, sheet_name, submission_sheet_name, library_type, plate_names, sample_only=False, run_name=None):
     plate_name_list = plate_names.split(',')
 
     scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
@@ -23,10 +24,16 @@ def generate_metasheet(outputdir, datadir, gcredentials, sheet_name, submission_
     library_names = []
     for x in all_values:
         if x.get('library_type') == library_type and x.get('run_name') != '' :
-            if x.get('plate') in plate_name_list:
-                sample_names.append(x.get('central_sample_id'))
-                run_names.append(x.get('run_name'))
-                library_names.append(x.get('library_name'))
+            if str(x.get('plate')) in plate_name_list:
+                if run_name:
+                    if run_name == x.get('run_name'):
+                        sample_names.append(x.get('central_sample_id'))
+                        run_names.append(x.get('run_name'))
+                        library_names.append(x.get('library_name'))                
+                else:
+                    sample_names.append(x.get('central_sample_id'))
+                    run_names.append(x.get('run_name'))
+                    library_names.append(x.get('library_name'))
     run_names = list(set(run_names))                
     if len(run_names) == 1:
         run_name = run_names[0]
@@ -46,7 +53,13 @@ def generate_metasheet(outputdir, datadir, gcredentials, sheet_name, submission_
         for x in all_values:
             if x.get('central_sample_id') in sample_names:
         # and fetch metadata and format for csv upload 
-            
+                if sheet_name == 'SARSCOV2-REACT-Metadata':
+                    if not x.get('is_surveillance'):
+                        x['is_surveillance'] = 'N'
+                    if not x.get('received_date'):
+                        x['received_date'] =  datetime.strftime(datetime.strptime(run_name.split('_')[0], '%y%m%d'), '%Y-%m-%d')
+                    if not x.get('collecting_org'):
+                        x['collecting_org'] =  'REACT'
                 record = Samplemeta(unknown = EXCLUDE).load(x)
                 clean_record = json.loads(json.dumps(record, default=str))
                 if not sample_only:
@@ -55,8 +68,10 @@ def generate_metasheet(outputdir, datadir, gcredentials, sheet_name, submission_
                     lib_record = SeqMeta(unknown = EXCLUDE).load(x)
                     clean_record.update(json.loads(json.dumps(lib_record, default=str)))
                 out_do.writerow(clean_record)
+        return out
     else:
         logging.error('Mulitple run names ')
+        return None
 
 
 

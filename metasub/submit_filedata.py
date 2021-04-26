@@ -78,7 +78,7 @@ def legacy_submit_filedata(datadir, run_name, majora_token):
         logging.error(f'No samples found in {datadir}')
 
 
-def submit_filedata(datadir, gcredentials, majora_token, submission_sheet_name, library_type, plate_names):
+def submit_filedata(datadir, gcredentials, majora_token, submission_sheet_name, library_type, plate_names, run_name=None):
 
     plate_name_list = plate_names.split(',')
 
@@ -93,9 +93,14 @@ def submit_filedata(datadir, gcredentials, majora_token, submission_sheet_name, 
     sample_names = []
     for x in all_values:
         if x.get('library_type') == library_type and x.get('run_name') != '' :
-            if x.get('plate') in plate_name_list:
-                sample_names.append(x.get('central_sample_id'))
-                run_names.append(x.get('run_name'))
+            if str(x.get('plate')) in plate_name_list:
+                if run_name: 
+                    if run_name == x.get('run_name'):
+                        sample_names.append(x.get('central_sample_id'))
+                        run_names.append(x.get('run_name'))
+                else:
+                    sample_names.append(x.get('central_sample_id'))
+                    run_names.append(x.get('run_name'))                    
     # Create upload list files 
     run_names = list(set(run_names))
     if len(run_names) == 1:
