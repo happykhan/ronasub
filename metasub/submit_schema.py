@@ -59,6 +59,10 @@ class Samplemeta(Schema):
                 in_data.pop(k)        
             elif isinstance(v, str):
                     in_data[k] = v.strip().upper()
+        if in_data.get('ct_1_ct_value') and not isinstance(in_data.get('ct_1_ct_value'), float): 
+            in_data.pop('ct_1_ct_value') 
+        if in_data.get('ct_2_ct_value') and not isinstance(in_data.get('ct_2_ct_value'), float): 
+            in_data.pop('ct_2_ct_value')             
         if in_data.get('is_icu_patient') not in ['Y', 'N']:
             if in_data.get('is_icu_patient'):
                 in_data.pop('is_icu_patient')     
@@ -88,8 +92,8 @@ class SeqMeta(Schema):
     library_selection = fields.Str(default='PCR')
     library_source = fields.Str(default='VIRAL_RNA')
     library_strategy = fields.Str(default='AMPLICON')
-    library_primers = fields.Integer(default=3)
-    library_protocol = fields.Str(default='ARTICv2')
+    artic_primers = fields.Integer(default=3, load_from='library_primers')
+    artic_protocol = fields.Str(default='ARTICv2', load_from='library_protocol')
     sequencing_org_received_date = fields.Str()
 
     @pre_load

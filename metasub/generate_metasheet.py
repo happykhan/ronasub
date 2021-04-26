@@ -5,9 +5,10 @@ import gspread
 from submit_schema import Samplemeta, SeqMeta
 from marshmallow import EXCLUDE
 import os 
+import json
 import csv 
 
-def generate_metasheet(outputdir, datadir, gcredentials, majora_token, sheet_name, submission_sheet_name, library_type, plate_names):
+def generate_metasheet(outputdir, datadir, gcredentials, majora_token, sheet_name, submission_sheet_name, library_type, plate_names, sample_only=False):
     plate_name_list = plate_names.split(',')
 
     scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
@@ -29,18 +30,30 @@ def generate_metasheet(outputdir, datadir, gcredentials, majora_token, sheet_nam
     run_names = list(set(run_names))                
     if len(run_names) == 1:
         run_name = run_names[0]
+        library_name = library_names[0]
         # go to proper table -
         meta_sheet = client.open(sheet_name).sheet1
         all_values = meta_sheet.get_all_records()        
         out_name = os.path.basename(datadir)
         out = os.path.join(outputdir, f'{out_name}.csv')
-        all_fields = list(Samplemeta().fields.keys()) + list(SeqMeta().fields.keys())
+        record = Samplemeta(unknown = EXCLUDE).load(x)
+
+        all_fields = [x.strip() for x in open('metasub/sample_and_library_fields').readlines()] 
         out_do = csv.DictWriter(open(out, 'w'), fieldnames=all_fields)
+        out_do.writeheader()
         for x in all_values:
+            if x.get('central_sample_id') in sample_names:
         # and fetch metadata and format for csv upload 
-            record =  {k: x[k] for k in all_fields}
-            #record.update(x)
-            out_do.writerow(record)
+            
+                record = Samplemeta(unknown = EXCLUDE).load(x)
+                clean_record = json.loads(json.dumps(record, default=str))
+                if not sample_only:
+                    x['run_name'] = run_name
+                    x['library_name'] = library_name
+                    lib_record = SeqMeta(unknown = EXCLUDE).load(x)
+                    clean_record.update(json.loads(json.dumps(lib_record, default=str)))
+                out_do.writerow(clean_record)
+        
     else:
         logging.error('Mulitple run names ')
 
