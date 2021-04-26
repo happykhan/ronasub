@@ -8,7 +8,7 @@ import os
 import json
 import csv 
 
-def generate_metasheet(outputdir, datadir, gcredentials, majora_token, sheet_name, submission_sheet_name, library_type, plate_names, sample_only=False):
+def generate_metasheet(outputdir, datadir, gcredentials, sheet_name, submission_sheet_name, library_type, plate_names, sample_only=False):
     plate_name_list = plate_names.split(',')
 
     scope = ['https://spreadsheets.google.com/feeds','https://www.googleapis.com/auth/drive']
@@ -37,8 +37,10 @@ def generate_metasheet(outputdir, datadir, gcredentials, majora_token, sheet_nam
         out_name = os.path.basename(datadir)
         out = os.path.join(outputdir, f'{out_name}.csv')
         record = Samplemeta(unknown = EXCLUDE).load(x)
-
-        all_fields = [x.strip() for x in open('metasub/sample_and_library_fields').readlines()] 
+        if sample_only:
+            all_fields = [x.strip() for x in open('metasub/sample_only_fields').readlines()] 
+        else:
+            all_fields = [x.strip() for x in open('metasub/sample_and_library_fields').readlines()] 
         out_do = csv.DictWriter(open(out, 'w'), fieldnames=all_fields)
         out_do.writeheader()
         for x in all_values:
@@ -60,5 +62,6 @@ def generate_metasheet(outputdir, datadir, gcredentials, majora_token, sheet_nam
 
 
 if __name__ == '__main__':
-    generate_metasheet('temp/', '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20210421', 'credentials.json', 'majora.json', 'SARCOV2-Metadata', 'COGUK_submission_status', 'COG', 'COG106,COG107')
-    generate_metasheet('temp/', '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20210421-Boat', 'credentials.json', 'majora.json', 'SARCOV2-Metadata', 'COGUK_submission_status', 'Boat', 'COG108')
+    generate_metasheet('temp/', '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.COG103', 'credentials.json', 'SARCOV2-Metadata', 'COGUK_submission_status', 'COG', 'COG103', sample_only=True)    
+    generate_metasheet('temp/', '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20210421', 'credentials.json', 'SARCOV2-Metadata', 'COGUK_submission_status', 'COG', 'COG106,COG107')
+    generate_metasheet('temp/', '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20210421-Boat', 'credentials.json', 'SARCOV2-Metadata', 'COGUK_submission_status', 'Boat', 'COG108')

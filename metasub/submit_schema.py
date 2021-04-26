@@ -38,7 +38,7 @@ class Samplemeta(Schema):
     biosample_source_id = fields.Str()
     sample_type_collected = fields.Str()
     swab_site = fields.Str()
-    is_surveillance = fields.Str(default='Y')
+    is_surveillance = fields.Str(default='Y', missing='Y')
     is_icu_patient = fields.Str(validate=validate.OneOf(["Y", "N"]))
     sender_sample_id = fields.Str()
     region = fields.Str()
