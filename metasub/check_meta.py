@@ -62,6 +62,12 @@ def check_meta(majora_token, submission_sheet_name, gcredentials, add_missing=Fa
         cells_to_update = []
 
         submission_sheet = client.open(submission_sheet_name).worksheet('Sheet2')
+        sheet_cells_to_update = [] 
+        sheet_column_position = sheet.row_values(1)
+        if sheet_name == "SARSCOV2-REACT-Metadata":
+            sheet_row_position = sheet.col_values(3)
+        else:
+            sheet_row_position = sheet.col_values(1)
         column_position = submission_sheet.row_values(1)
         row_position = submission_sheet.col_values(1)
         logging.info(f'loaded {len(all_values)} records from submission sheet {sheet_name}')
@@ -81,20 +87,24 @@ def check_meta(majora_token, submission_sheet_name, gcredentials, add_missing=Fa
                             logging.error(f'{sample_name} has no published groups ')          
                         if cog_metadata.get(sample_name)['run_name'] in sample_runs:
                             cog_value = "YES"
-                            # local = Samplemeta(unknown = EXCLUDE).load(x)                
-                            #   remote =  Samplemeta(unknown = EXCLUDE).load(cog_metadata[sample_name])       
-                            # shared_items = {k: x[k] for k in x if k in cog_metadata[sample_name] and x[k] == cog_metadata[sample_name][k]}
-                            # TODO: Should check record values of COG versus local copy. 
                             metadata_sync_errors = ''
                             if cog_metadata[sample_name]['run_name'] != x['run_name']:
                                 remote_run_name = cog_metadata[sample_name]['run_name']
                                 metadata_sync_errors += f'run name is {remote_run_name} on COG, '
+                                if x['run_name'] == '':
+                                    sheet_cells_to_update.append(gspread.models.Cell(row=sheet_row_position.index(x['central_sample_id'])+1, col=sheet_column_position.index('run_name')+1, value=remote_run_name))                                                                        
                             if cog_metadata[sample_name]['biosample_source_id'] != x['biosample_source_id']:
                                 biosample_source_id = cog_metadata[sample_name]['biosample_source_id']
                                 metadata_sync_errors += f'run name is {biosample_source_id} on COG, '
+                                if x['biosample_source_id'] == '':
+                                    sheet_cells_to_update.append(gspread.models.Cell(row=sheet_row_position.index(x['central_sample_id'])+1, col=sheet_column_position.index('biosample_source_id')+1, value=biosample_source_id))                                        
                             if cog_metadata[sample_name]['library_name'] != x['library_name']:
                                 library_name = cog_metadata[sample_name]['library_name']
-                                metadata_sync_errors += f'run name is {library_name} on COG, '                        
+                                metadata_sync_errors += f'run name is {library_name} on COG, '  
+                                if x['library_name'] == '':
+                                    sheet_cells_to_update.append(gspread.models.Cell(row=sheet_row_position.index(x['central_sample_id'])+1, col=sheet_column_position.index('library_name')+1, value=library_name))                              
+                            if x['is_surveillance'] == ''  and cog_metadata[sample_name].get('is_surveillance'):
+                                sheet_cells_to_update.append(gspread.models.Cell(row=sheet_row_position.index(x['central_sample_id'])+1, col=sheet_column_position.index('is_surveillance')+1, value=cog_metadata[sample_name].get('is_surveillance')))                              
                             cells_to_update.append(gspread.models.Cell(row=row_position.index(x['central_sample_id'])+1, col=column_position.index('upload_date')+1, value=cog_metadata[sample_name]['sequencing_submission_date']))
                             cells_to_update.append(gspread.models.Cell(row=row_position.index(x['central_sample_id'])+1, col=column_position.index('pags')+1, value=cog_metadata[sample_name]['published_as']))
                             cells_to_update.append(gspread.models.Cell(row=row_position.index(x['central_sample_id'])+1, col=column_position.index('pag_count')+1, value=len(cog_metadata[sample_name]['published_as'].split(','))))
@@ -108,7 +118,12 @@ def check_meta(majora_token, submission_sheet_name, gcredentials, add_missing=Fa
         if cells_to_update:
             print('Updating values')
             submission_sheet.update_cells(cells_to_update)          
-
+        if sheet_cells_to_update:
+            print('Updating sheet values')
+            sheet.update_cells(sheet_cells_to_update)            
+        if metadata_sync_errors:
+            logging.error(metadata_sync_errors)
+                      
 
 def load_config(config="majora.json"):
     config_dict = json.load(open(config))

@@ -88,6 +88,23 @@ async def make_samplesheet(ctx, datadir, library_type, plate_list, run_name=None
     else:
         await ctx.send(f"```\nERROR Generating sheet\n```\n")
 
+@bot.command(pass_context=True, brief="Creates sample sheet for uploading existing samples", help="Creates a sample sheet read for upload through COG interactive submission" )
+async def update_samplesheet(ctx, library_type, plate_list):
+    if library_type.upper() in ['REACT']:
+        sheet_name = 'SARSCOV2-REACT-Metadata'
+    else: 
+        sheet_name = 'SARCOV2-Metadata'
+    await ctx.send("```\nReading sample sheets...\n```\n")
+    datadir = None
+    output_path = generate_metasheet('temp', datadir, 'credentials.json', sheet_name, 'COGUK_submission_status', library_type, plate_list, sample_only=True)
+    if output_path:
+        await ctx.send(f'Here is your upload sheet for {library_type} {plate_list}\n', file=discord.File(output_path))
+        shutil.copy(output_path, output_path +'.attachment')
+        await ctx.send(file=discord.File(output_path +'.attachment'))
+        await ctx.send('You can submit this to http://metadata.cog-uk.io')
+    else:
+        await ctx.send(f"```\nERROR Generating sheet\n```\n")
+
 @bot.event
 async def on_command_error(ctx, error):
     if isinstance(error, commands.CommandNotFound):

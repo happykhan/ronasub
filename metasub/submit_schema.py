@@ -76,6 +76,8 @@ class Samplemeta(Schema):
         # handle REACT samples
         if in_data.get('region') and not in_data.get('adm2'):
             in_data['adm2'] = in_data.get('region')
+        if not in_data.get('biosample_source_id') and in_data.get('sample_barcode'):
+            in_data['biosample_source_id'] = in_data.get('sample_barcode')
         return in_data
 
 class SeqMeta(Schema):
