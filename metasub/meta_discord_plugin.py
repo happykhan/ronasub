@@ -18,7 +18,7 @@ import meta
 import time 
 import os 
 import csv
-from discord.ext import commands
+from discord.ext import commands, tasks
 from gather_plates import gather
 from check_meta import check_meta as check_meta_func
 from submit_filedata import submit_filedata as submit_filedata_func
@@ -29,13 +29,40 @@ from discord.ext.commands.errors import MissingRequiredArgument
 chan_id  = 796393522730762260
 bot = commands.Bot(command_prefix='$')
 
+
 epi = "Licence: " + meta.__licence__ +  " by " +meta.__author__ + " <" +meta.__author_email__ + ">"
 logging.basicConfig()
 log = logging.getLogger()
 
+
+class Back(commands.Cog):
+
+    def __init__(self, bot):
+        self.bot= bot
+        self._batch = []
+        self.lock = asyncio.Lock()
+        self.bg_update_submission_table.start()
+        
+    @tasks.loop(seconds=600)
+    async def bg_update_submission_table(self):
+        channel = bot.get_channel(chan_id)
+        await channel.send('Running submission update daemon ... ')
+        gather()
+        channel = bot.get_channel(chan_id)
+        check_meta_func('majora.json', 'COGUK_submission_status', 'credentials.json')
+        await channel.send('Updated from sequencing folders and updated submission table')        
+
+    @bg_update_submission_table.before_loop
+    async def before_bg_update_submission_table(self):
+        logging.info('waiting...')
+        await self.bot.wait_until_ready()        
+
+
+
 def load_config(config="discord.json"):
     config_dict = json.load(open(config))
     return config_dict
+
 
 @bot.event
 async def on_ready():
@@ -114,21 +141,12 @@ async def on_command_error(ctx, error):
     if isinstance(error, commands.MissingPermissions):
         await ctx.send("**You dont have all the requirements or permissions for using this command :angry:**")
   
-# @bot.event
-# async def bg_update_submission_table():
-#     await bot.wait_until_ready()
-#     while not client.is_closed():
-#         gather()
-#         channel = client.get_channel(chan_id)
-#         check_meta('majora.json', 'COGUK_submission_status', 'credentials.json')
-#         await channel.send('Updated from sequencing folders and updated submission table')        
-#         await asyncio.sleep(28800) # task runs every 8 hours 
-
 def main(args):
     config = load_config()
     chan_id = args.chanid
     log.setLevel(logging.INFO)
     if config.get('discord_token'):
+        # bg = Back(bot)
         # bg_task = client.loop.create_task(bg_update_submission_table())
         bot.run(config.get('discord_token'))
     else:
