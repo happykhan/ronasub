@@ -121,11 +121,12 @@ def update_sample_meta(args):
                             if isinstance(old_data[old_key], int) and not new_data[old_key]=='':
                                 changed = int(old_data[old_key])!=int(new_data[old_key])
                                 
-                            if changed==True: # and len(old_data[old_key])==0: # Only update blank cells
+                            if changed==True and (isinstance(old_data[old_key], str) and len(old_data[old_key])==0): # Only update blank cells
                                 print('Change found for sample [' + key + '] with field [' + old_key + '] [' + str(old_data[old_key]) + '] -> [' + str(new_data[old_key]) + ']')
                                 cells_to_update.append(gspread.models.Cell(row=list(sample2keyValues.keys()).index(key)+2, col=list(old_data.keys()).index(old_key)+1, value=new_data[old_key]))
-            
-    print('Adding ' + str(len(new_rows)) + ' rows')
+
+    if len(new_rows)==0:  print('No new rows were added')
+    else: print('Adding ' + str(len(new_rows)) + ' rows')
 
     # Currently the fields are slightly different...delete and push again if the columns are correct
     
@@ -142,6 +143,8 @@ def update_sample_meta(args):
     all_values = sheet.get_all_records()
     column_position = sheet.row_values(1)
     row_position = sheet.col_values(1)
+
+    print('Update submission sheet has finished')
 
 
 def summarise_plates(args):

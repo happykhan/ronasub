@@ -16,13 +16,13 @@ it should
 *  Pull out all the covid samples and group them according to "called" and figure out which plate they are. the code i pasted above might help
 * then update the google sheet - coguksubmission status . add new records if not there, check library name, run name are as expected. """
 
-
+import sys
 import os
 import os.path
 
 import logging
 
-def gather(datadir='/home/ubuntu/transfer/incoming/QIB_Sequencing'):
+def gather(datadir,nextseqdirs,resultsdirs):
     print('central_sample_id,library_name,run_name,sequencing_date,upload_date,plate_failed,pag_count,pags,metadata_sync,is_submitted_to_cog,partial_submission,library_type,plate,consensus_constructed,basic_qc,high_quality_qc')
 
     sampleName2Project=dict()
@@ -31,7 +31,7 @@ def gather(datadir='/home/ubuntu/transfer/incoming/QIB_Sequencing'):
     sampleName2RunName=dict()
     sampleName2SequencingDate=dict()
 
-    for next_seq_directory in ('Nextseq_1_runs','Nextseq_2_runs'):
+    for next_seq_directory in nextseqdirs:
         directories = os.listdir(datadir +'/' + next_seq_directory)
         for directory in directories:
             if os.path.isdir(datadir + '/' + next_seq_directory + '/' + directory):
@@ -104,69 +104,78 @@ def gather(datadir='/home/ubuntu/transfer/incoming/QIB_Sequencing'):
                                 else: sampleName2Plate[key] = "Unknown"
 
 # Now iterate through the covid results and output everything...use the metrics.csv
-    results_dir = os.path.join(datadir + '/Covid-19_Seq')
-    directories = os.listdir(results_dir)
-    for directory in [os.path.join(results_dir, d) for d in directories]:
-        if os.path.isdir(directory):
-            directory_name = os.path.basename(directory)
-            if directory_name[:7]=='result.':
-                files = os.listdir(directory)
+    for results_dir in resultsdirs:
+        directories = os.listdir(results_dir)
+        for directory in [os.path.join(results_dir, d) for d in directories]:
+            if os.path.isdir(directory):
+                directory_name = os.path.basename(directory)
+                if directory_name[:7]=='result.':
+                    files = os.listdir(directory)
 
-                library_name='Unknown'
-                for file in files:
-                    filename = str(file)
-                    if filename[-7:]=='.qc.csv':
-                        library_name = filename[:-7]
-                
-                for file in files:
-                    filename = str(file)
-                    if 'metrics' in filename:
-                        # Load in the names of consensus sequences
-                        consensus_sequence_names=list()
-                        dir_name = os.path.basename(directory)
-                        if dir_name[:15]=='result.illumina':
-                            consensus_files = os.path.join(directory,  'ncovIllumina_sequenceAnalysis_makeConsensus')
-                            for consensus_file_path in [os.path.join(consensus_files, x)  for x in os.listdir(consensus_files)]:
-                                consensus_file = os.path.basename(consensus_file_path)
-                                if not os.path.isdir(consensus_file_path):
-                                    with open(consensus_file_path) as f:
-                                        try:
-                                            lines = f.readlines()
-                                            if 'G' in lines[1] or 'C' in lines[1] or 'A' in lines[1] or 'T' in lines[1]: consensus_sequence_names.append(str(consensus_file))
-                                        except:
-                                            pass
-                        elif dir_name[:15]=='result.coronahit':
-                            sample_dir = os.path.join(direct, 'articNcovNanopore_sequenceAnalysisMedaka_articMinIONMedaka')
-                            sample_directories = os.listdir(sample_dir)
-                            for sample_directory in sample_directories:
-                                sample_files = os.listdir(os.path.join(sample_directories, sample_directory))
-                                for sample_file in sample_files:
-                                    sample_file_name = str(sample_file)
-                                    if sample_file_name[-15:] =='consensus.fasta': consensus_sequence_names.append(str(sample_directory))
-                        
-                        with open(directory + '/' + filename) as f:
-                            lines = f.readlines()
-                            first_line=True
-                            for line in lines:
-                                if first_line==True: first_line=False
-                                else:
-                                    fields = line.rstrip().split(',')
-                                    central_sample = fields[0]
-                                    date = directory[directory.rfind('.'):]
-                                    key = central_sample+date[3:9]
-                                    if key in sampleName2RunName.keys():
-                                        consensus_exists='False'
+                    library_name='Unknown'
+                    for file in files:
+                        filename = str(file)
+                        if filename[-7:]=='.qc.csv':
+                            library_name = filename[:-7]
+                    
+                    for file in files:
+                        filename = str(file)
+                        if 'metrics' in filename:
+                            # Load in the names of consensus sequences
+                            consensus_sequence_names=list()
+                            dir_name = os.path.basename(directory)
+                            if dir_name[:15]=='result.illumina':
+                                consensus_files = os.path.join(directory,  'ncovIllumina_sequenceAnalysis_makeConsensus')
+                                for consensus_file_path in [os.path.join(consensus_files, x)  for x in os.listdir(consensus_files)]:
+                                    consensus_file = os.path.basename(consensus_file_path)
+                                    if not os.path.isdir(consensus_file_path):
+                                        with open(consensus_file_path) as f:
+                                            try:
+                                                lines = f.readlines()
+                                                if 'G' in lines[1] or 'C' in lines[1] or 'A' in lines[1] or 'T' in lines[1]: consensus_sequence_names.append(str(consensus_file))
+                                            except:
+                                                pass
+                            elif dir_name[:15]=='result.coronahit':
+                                sample_dir = os.path.join(direct, 'articNcovNanopore_sequenceAnalysisMedaka_articMinIONMedaka')
+                                sample_directories = os.listdir(sample_dir)
+                                for sample_directory in sample_directories:
+                                    sample_files = os.listdir(os.path.join(sample_directories, sample_directory))
+                                    for sample_file in sample_files:
+                                        sample_file_name = str(sample_file)
+                                        if sample_file_name[-15:] =='consensus.fasta': consensus_sequence_names.append(str(sample_directory))
+                            
+                            with open(directory + '/' + filename) as f:
+                                lines = f.readlines()
+                                first_line=True
+                                for line in lines:
+                                    if first_line==True: first_line=False
+                                    else:
+                                        fields = line.rstrip().split(',')
+                                        central_sample = fields[0]
+                                        date = directory[directory.rfind('.'):]
+                                        key = central_sample+date[3:9]
+                                        if key in sampleName2RunName.keys():
+                                            consensus_exists='False'
 
-                                        for consensus_sequence_name in consensus_sequence_names:
-                                            if central_sample in consensus_sequence_name:
-                                                consensus_exists='True'
+                                            for consensus_sequence_name in consensus_sequence_names:
+                                                if central_sample in consensus_sequence_name:
+                                                    consensus_exists='True'
 
-                                        # central_sample_id,library_name,run_name,sequencing_date,upload_date,plate_failed,pag_count,pags,metadata_sync,is_submitted_to_cog,partial_submission,library_type,plate,consensus_constructed,basic_qc,high_quality_qc
+                                            # central_sample_id,library_name,run_name,sequencing_date,upload_date,plate_failed,pag_count,pags,metadata_sync,is_submitted_to_cog,partial_submission,library_type,plate,consensus_constructed,basic_qc,high_quality_qc
 
-                                        print(central_sample + ',' + library_name + ',' + sampleName2RunName[key] + ',' + sampleName2SequencingDate[key] + ',,,,,,,,' + sampleName2Project[key] + ',' + sampleName2Plate[key] + ',' + consensus_exists + ',' + fields[12] + ',' + fields[13])
-                      #              else:
-                      #                  print(central_sample + ',Not found')
+                                            print(central_sample + ',' + library_name + ',' + sampleName2RunName[key] + ',' + sampleName2SequencingDate[key] + ',,,,,,,,' + sampleName2Project[key] + ',' + sampleName2Plate[key] + ',' + consensus_exists + ',' + fields[12] + ',' + fields[13])
+    #                                    else:
+    #                                        print(key + ',Not found')
 
 
 if __name__ == '__main__':
-    gather() # Make a CSV file of everything
+    datadir='/home/ubuntu/transfer/incoming/QIB_Sequencing'
+    nextseqdirs=('Nextseq_1_runs','Nextseq_2_runs')
+    resultsdirs = list()
+    resultsdirs.append(datadir + '/Covid-19_Seq')
+    
+    if len(sys.argv)>1: datadir = sys.argv[1]
+    if len(sys.argv)>2: nextseqdirs = sys.argv[2].split(',')
+    if len(sys.argv)>3: resultsdirs = sys.argv[3].split(',')
+    
+    gather(datadir,nextseqdirs,resultsdirs) # Make a CSV file of everything
