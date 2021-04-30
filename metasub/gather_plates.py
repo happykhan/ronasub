@@ -22,7 +22,7 @@ import os.path
 
 import logging
 
-def gather():
+def gather(datadir='/home/ubuntu/transfer/incoming/QIB_Sequencing'):
     print('central_sample_id,library_name,run_name,sequencing_date,upload_date,plate_failed,pag_count,pags,metadata_sync,is_submitted_to_cog,partial_submission,library_type,plate,consensus_constructed,basic_qc,high_quality_qc')
 
     sampleName2Project=dict()
@@ -32,10 +32,10 @@ def gather():
     sampleName2SequencingDate=dict()
 
     for next_seq_directory in ('Nextseq_1_runs','Nextseq_2_runs'):
-        directories = os.listdir('transfer/incoming/QIB_Sequencing/' + next_seq_directory)
+        directories = os.listdir(datadir +'/' + next_seq_directory)
         for directory in directories:
-            if os.path.isdir('transfer/incoming/QIB_Sequencing/' + next_seq_directory + '/' + directory):
-                sample_sheet_file = 'transfer/incoming/QIB_Sequencing/' + next_seq_directory + '/' + directory + '/SampleSheet.csv'
+            if os.path.isdir(datadir + '/' + next_seq_directory + '/' + directory):
+                sample_sheet_file = datadir + '/' + next_seq_directory + '/' + directory + '/SampleSheet.csv'
                 if os.path.isfile(sample_sheet_file):
                     called2plate=dict()
 
@@ -67,7 +67,7 @@ def gather():
                             sampleName = fields[0]
                             key = fields[0] + directory[:6] # central_sampleid+date
                             
-                            if len(fields)>7:
+                            if len(fields)>7 and sampleName != 'Sample_ID':
                                 sampleName2SequencingDate[key] = sequencing_date
                                 sampleName2RunName[key] = str(directory)
                                 sampleName2Project[key] = fields[len(fields)-1]
@@ -103,16 +103,14 @@ def gather():
                                 elif fields[2] in called2plate.keys(): sampleName2Plate[key] = called2plate[fields[2]]
                                 else: sampleName2Plate[key] = "Unknown"
 
-
-
-
 # Now iterate through the covid results and output everything...use the metrics.csv
-    directories = os.listdir('transfer/incoming/QIB_Sequencing/Covid-19_Seq')
-    for directory in directories:
-        if os.path.isdir('transfer/incoming/QIB_Sequencing/Covid-19_Seq/' + directory):
-            directory_name = str(directory)
+    results_dir = os.path.join(datadir + '/Covid-19_Seq')
+    directories = os.listdir(results_dir)
+    for directory in [os.path.join(results_dir, d) for d in directories]:
+        if os.path.isdir(directory):
+            directory_name = os.path.basename(directory)
             if directory_name[:7]=='result.':
-                files = os.listdir('transfer/incoming/QIB_Sequencing/Covid-19_Seq/' + directory)
+                files = os.listdir(directory)
 
                 library_name='Unknown'
                 for file in files:
@@ -125,11 +123,11 @@ def gather():
                     if 'metrics' in filename:
                         # Load in the names of consensus sequences
                         consensus_sequence_names=list()
-
-                        if directory[:15]=='result.illumina':
-                            consensus_files = os.listdir('transfer/incoming/QIB_Sequencing/Covid-19_Seq/' + directory + '/ncovIllumina_sequenceAnalysis_makeConsensus')
-                            for consensus_file in consensus_files:
-                                consensus_file_path = 'transfer/incoming/QIB_Sequencing/Covid-19_Seq/' + directory + '/ncovIllumina_sequenceAnalysis_makeConsensus/' + consensus_file
+                        dir_name = os.path.basename(directory)
+                        if dir_name[:15]=='result.illumina':
+                            consensus_files = os.path.join(directory,  'ncovIllumina_sequenceAnalysis_makeConsensus')
+                            for consensus_file_path in [os.path.join(consensus_files, x)  for x in os.listdir(consensus_files)]:
+                                consensus_file = os.path.basename(consensus_file_path)
                                 if not os.path.isdir(consensus_file_path):
                                     with open(consensus_file_path) as f:
                                         try:
@@ -137,15 +135,16 @@ def gather():
                                             if 'G' in lines[1] or 'C' in lines[1] or 'A' in lines[1] or 'T' in lines[1]: consensus_sequence_names.append(str(consensus_file))
                                         except:
                                             pass
-                        elif directory[:15]=='result.coronahit':
-                            sample_directories = os.listdir('transfer/incoming/QIB_Sequencing/Covid-19_Seq/' + directory + '/articNcovNanopore_sequenceAnalysisMedaka_articMinIONMedaka')
+                        elif dir_name[:15]=='result.coronahit':
+                            sample_dir = os.path.join(direct, 'articNcovNanopore_sequenceAnalysisMedaka_articMinIONMedaka')
+                            sample_directories = os.listdir(sample_dir)
                             for sample_directory in sample_directories:
-                                sample_files = os.listdir('transfer/incoming/QIB_Sequencing/Covid-19_Seq/' + directory + '/articNcovNanopore_sequenceAnalysisMedaka_articMinIONMedaka/' + sample_directory)
+                                sample_files = os.listdir(os.path.join(sample_directories, sample_directory))
                                 for sample_file in sample_files:
                                     sample_file_name = str(sample_file)
                                     if sample_file_name[-15:] =='consensus.fasta': consensus_sequence_names.append(str(sample_directory))
                         
-                        with open('transfer/incoming/QIB_Sequencing/Covid-19_Seq/' + directory + '/' + filename) as f:
+                        with open(directory + '/' + filename) as f:
                             lines = f.readlines()
                             first_line=True
                             for line in lines:

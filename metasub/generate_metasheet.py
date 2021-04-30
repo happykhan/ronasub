@@ -23,7 +23,7 @@ def generate_metasheet(outputdir, datadir, gcredentials, sheet_name, submission_
     sample_names = []
     library_names = []
     for x in all_values:
-        if x.get('library_type') == library_type and x.get('run_name') != '' :
+        if x.get('library_type') == library_type and x.get('run_name') != ''  and x.get('qc_pass') == '':
             if str(x.get('plate')) in plate_name_list:
                 if run_name:
                     if run_name == x.get('run_name'):
@@ -80,7 +80,5 @@ def generate_metasheet(outputdir, datadir, gcredentials, sheet_name, submission_
 
 
 if __name__ == '__main__':
-    generate_metasheet('temp/', None, 'credentials.json', 'SARCOV2-Metadata', 'COGUK_submission_status', 'COG', 'COG103', sample_only=True)    
-    generate_metasheet('temp/', '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.COG103', 'credentials.json', 'SARCOV2-Metadata', 'COGUK_submission_status', 'COG', 'COG103', sample_only=True)    
-    generate_metasheet('temp/', '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20210421', 'credentials.json', 'SARCOV2-Metadata', 'COGUK_submission_status', 'COG', 'COG106,COG107')
-    generate_metasheet('temp/', '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20210421-Boat', 'credentials.json', 'SARCOV2-Metadata', 'COGUK_submission_status', 'Boat', 'COG108')
+    
+    generate_metasheet('temp/', '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20210428', 'credentials.json', 'SARCOV2-Metadata', 'COGUK_submission_status', 'COG', 'COG109', sample_only=True)

@@ -92,7 +92,7 @@ def submit_filedata(datadir, gcredentials, majora_token, submission_sheet_name, 
     run_names = [] 
     sample_names = []
     for x in all_values:
-        if x.get('library_type') == library_type and x.get('run_name') != '' :
+        if x.get('library_type') == library_type and x.get('run_name') != '' and x.get('qc_pass') == '':
             if str(x.get('plate')) in plate_name_list:
                 if run_name: 
                     if run_name == x.get('run_name'):
@@ -115,5 +115,5 @@ def submit_filedata(datadir, gcredentials, majora_token, submission_sheet_name, 
 
 
 if __name__ == '__main__':
-    submit_filedata('/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20210421', 'credentials.json', 'majora.json', 'COGUK_submission_status', 'COG', 'COG106,COG107')
-    submit_filedata('/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20210421-Boat', 'credentials.json', 'majora.json', 'COGUK_submission_status', 'Boat', 'COG108')
+    submit_filedata('/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20210428', 'credentials.json', 'majora.json', 'COGUK_submission_status', 'COG', 'COG109')
+    submit_filedata('/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20210428-REACT', 'credentials.json', 'majora.json', 'COGUK_submission_status', 'COG', 'COG109')
