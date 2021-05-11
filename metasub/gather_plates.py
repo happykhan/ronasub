@@ -163,7 +163,12 @@ def gather(datadir,nextseqdirs,resultsdirs):
 
                                             # central_sample_id,library_name,run_name,sequencing_date,upload_date,plate_failed,pag_count,pags,metadata_sync,is_submitted_to_cog,partial_submission,library_type,plate,consensus_constructed,basic_qc,high_quality_qc
 
-                                            print(central_sample + ',' + library_name + ',' + sampleName2RunName[key] + ',' + sampleName2SequencingDate[key] + ',,,,,,,,' + sampleName2Project[key] + ',' + sampleName2Plate[key] + ',' + consensus_exists + ',' + fields[12] + ',' + fields[13])
+                                            # Use library name from sequencing run name
+                                            sequencing_directory_name = sampleName2RunName[key]
+                                            library_name = 'NORW-20' + sequencing_directory_name[:6]
+                                            run_name = sequencing_directory_name[:6] + sequencing_directory_name[sequencing_directory_name.rfind('_')+1:]
+
+                                            print(central_sample + ',' + library_name + ',' + run_name + ',' + sampleName2SequencingDate[key] + ',,,,,,,,' + sampleName2Project[key] + ',' + sampleName2Plate[key] + ',' + consensus_exists + ',' + fields[12] + ',' + fields[13])
     #                                    else:
     #                                        print(key + ',Not found')
 
