@@ -189,6 +189,57 @@ def summarise_plates(args):
         hc_percentage_passes = (hc_passes*100)/plate2number_of_samples[plate_name]
 
         if plate2number_of_samples[plate_name]>1: print(plate_name + '\t' + str(list(plate2date[plate_name])) + '\t' + str(plate2number_of_samples[plate_name]) + '\t' + "{:.2f}".format(percentage_passes) + '%\t' + "{:.2f}".format(hc_percentage_passes) + '%')
+
+def generate_audit_report(args):
+    startDate='2021-01-01'
+    endDate='2021-03-31'
+
+    date2count = dict()
+    date2typeCount=dict()
+    libraryTypes=set()
+    
+    client = get_google_session(args.gcredentials)
+    sheet = client.open('COGUK_submission_status').get_worksheet(0) # Index from 0, get the second sheet.
+    all_values = sheet.get_all_records()
+
+    for key2value in all_values:
+        sequencingDate = str(key2value['sequencing_date'])
+        libraryType = str(key2value['library_type'])
+        if libraryType=='': libraryType='Unknown'
+
+        if (startDate=='' or sequencingDate>=startDate) and (endDate=='' or sequencingDate<=endDate):
+            if not sequencingDate in date2count.keys():
+                date2count[sequencingDate]=1
+                date2typeCount[sequencingDate] = dict()
+            else:
+                date2count[sequencingDate]=date2count[sequencingDate]+1
+
+            typeCount = date2typeCount[sequencingDate]
+            if not libraryType in typeCount.keys():
+                typeCount[libraryType]=1
+                libraryTypes.add(libraryType)
+            else: typeCount[libraryType]=typeCount[libraryType]+1
+        
+    header='Date,Total'
+    for libraryType in sorted(libraryTypes):
+        header = header + ',' + libraryType
+
+    print(header)
+    total=0
+    for date in sorted(date2count.keys()):
+        total = total + date2count[date]
+        line = str(date) + ',' + str(date2count[date])
+
+        typeCount = date2typeCount[date]
+
+        for libraryType in sorted(libraryTypes):
+            if libraryType in typeCount.keys(): line = line + ',' + str(typeCount[libraryType])
+            else:  line = line + ',0'
+            
+        print(line)
+
+
+    print('Total sequences ' + str(total))
     
 if __name__ == '__main__':
     start_time = time.time()
@@ -206,6 +257,9 @@ if __name__ == '__main__':
 
     meta_parser = subparsers.add_parser('summarise_plates', help='Summarise plates')
     meta_parser.set_defaults(func=summarise_plates)
+
+    meta_parser = subparsers.add_parser('generate_audit_report', help='Generate audit report')
+    meta_parser.set_defaults(func=generate_audit_report)
     
     args = parser.parse_args()
     if args.verbose: 
