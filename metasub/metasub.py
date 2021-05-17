@@ -14,7 +14,7 @@ import meta
 import argparse
 from gather_plates import gather
 from check_meta import check_meta
-from submit_filedata import legacy_submit_filedata
+from submit_filedata import legacy_submit_filedata, submit_filedata
 from generate_metasheet import generate_metasheet
 
 epi = "Licence: " + meta.__licence__ +  " by " +meta.__author__ + " <" +meta.__author_email__ + ">"
@@ -32,6 +32,12 @@ def sync_meta_option(args):
 def legacy_submit_filedata_option(args):
     # Sends files from sequencing run to COG 
     legacy_submit_filedata(args.datadir, args.run_name, args.majora_token)
+
+def submit_filedata_option(args):
+    # Sends files from sequencing run to COG 
+    # ('/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20210428', 'credentials.json', 'majora.json', 'COGUK_submission_status', 'COG', 'COG109'# 
+    # submit_filedata(datadir, gcredentials, majora_token, submission_sheet_name, library_type, plate_names, run_name=None)
+    submit_filedata(args.datadir, args.gcredentials, args.majora_token, args.submission_sheet, args.library_type, args.plate_names, run_name=args.run_name)
 
 def generate_metasheet_option(args):
     # Generates metadata sheet for submission. 
@@ -65,6 +71,15 @@ if __name__ == '__main__':
     legacy_submit_filedata_parser.add_argument('run_name', action='store', help='Run name to submit')
     legacy_submit_filedata_parser.add_argument('--majora_token', action='store', default='majora.json', help='Path to MAJORA COG API credentials (JSON)')
     legacy_submit_filedata_parser.set_defaults(func=legacy_submit_filedata_option)
+
+    # Submit parser
+    submit_filedata_parser = subparsers.add_parser('submit_files', help='Sends files from sequencing run to COG ')
+    submit_filedata_parser.add_argument('datadir', action='store', help='Location of data output')
+    submit_filedata_parser.add_argument('library_type', action='store', help='Type of project i.e. (COG, Sanger, REACT)')
+    submit_filedata_parser.add_argument('plate_names', action='store', help='List of plates to use (comma delimited)')    
+    submit_filedata_parser.add_argument('--run_name', action='store', help='Sequencing run name e.g AHX ....', default=None)
+    submit_filedata_parser.add_argument('--majora_token', action='store', default='majora.json', help='Path to MAJORA COG API credentials (JSON)')
+    submit_filedata_parser.set_defaults(func=submit_filedata_option)    
 
     # Metasheet parser 
     generate_metasheet_parser = subparsers.add_parser('generate_sheet', help='Generates metadata sheet for submission')
