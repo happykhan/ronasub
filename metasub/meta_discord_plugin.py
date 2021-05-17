@@ -67,7 +67,7 @@ def load_config(config="discord.json"):
 @bot.event
 async def on_ready():
     channel = bot.get_channel(chan_id)
- #   await channel.send('COG Submission Service started...')    
+    await channel.send('COG Submission Service started...')    
     print('We have logged in as {0.user}'.format(bot))
 
 @bot.event
