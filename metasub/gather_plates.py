@@ -101,7 +101,12 @@ def gather(args):
                                     if len(fields)>7 and sampleName != 'Sample_ID':
                                         sampleName2SequencingDate[key] = sequencing_date
                                         sampleName2RunName[key] = str(directory)
-                                        sampleName2Project[key] = fields[len(fields)-1]
+                                        
+                                        project = fields[len(fields)-1]
+                                        if '-' in project: project = project[:project.index('-')]
+                                        if '_' in project: project = project[:project.index('_')]
+                                        sampleName2Project[key] = project
+                                        
                                         sampleName2Called[key] = fields[2]
 
                                         # Firstly try to infer the plate name from the sample name
@@ -140,7 +145,7 @@ def gather(args):
         for directory in [os.path.join(results_dir, d) for d in directories]:
             if os.path.isdir(directory):
                 directory_name = os.path.basename(directory)
-                if directory_name[:7]=='result.':
+                if directory_name[:7]=='result.' and not directory_name[-5:]=='babwe' and not directory_name[-5:]=='ustin': # Ignore Zimbabwe and Justin data
                     files = os.listdir(directory)
 
                     library_name='Unknown'
@@ -331,21 +336,22 @@ def generate_audit_report(args):
         all_values = sheet.get_all_records()
 
         for key2value in all_values:
-            sequencingDate = str(key2value['sequencing_date'])
+            #sequencingDate = str(key2value['sequencing_date'])
+            uploadDate = str(key2value['upload_date'])
             libraryType = str(key2value['library_type'])
             centralSampleID = str(key2value['central_sample_id'])
             
             if libraryType=='': libraryType='Unknown'
             if 'BLANK' in centralSampleID or centralSampleID[-3:]=='_NC' or centralSampleID[-3:]=='_PC' or centralSampleID[-3:]=='-NC' or centralSampleID[-3:]=='-PC': libraryType='Controls'
 
-            if (startDate=='' or sequencingDate>=startDate) and (endDate=='' or sequencingDate<=endDate):
-                if not sequencingDate in date2count.keys():
-                    date2count[sequencingDate]=1
-                    date2typeCount[sequencingDate] = dict()
+            if (startDate=='' or uploadDate>=startDate) and (endDate=='' or uploadDate<=endDate):
+                if not uploadDate in date2count.keys():
+                    date2count[uploadDate]=1
+                    date2typeCount[uploadDate] = dict()
                 else:
-                    date2count[sequencingDate]=date2count[sequencingDate]+1
+                    date2count[uploadDate]=date2count[uploadDate]+1
 
-                typeCount = date2typeCount[sequencingDate]
+                typeCount = date2typeCount[uploadDate]
                 if not libraryType in typeCount.keys():
                     typeCount[libraryType]=1
                     libraryTypes.add(libraryType)
@@ -364,8 +370,8 @@ def generate_audit_report(args):
             typeCount = date2typeCount[date]
 
             for libraryType in sorted(libraryTypes):
-                if libraryType in typeCount.keys(): line = line + ',' + str(typeCount[libraryType])
-                else:  line = line + ',0'
+                    if libraryType in typeCount.keys(): line = line + ',' + str(typeCount[libraryType])
+                    else:  line = line + ',0'
                 
             f.write(line + '\n')
 
@@ -373,6 +379,43 @@ def generate_audit_report(args):
         
         f.flush()
         f.close()
+
+
+
+def update_upload_date(args):
+    client = get_google_session(args.gcredentials)
+    sheet = client.open('COGUK_submission_status').get_worksheet(0) # Index from 0, get the second sheet.
+    all_values = sheet.get_all_records()
+    
+    sampleKey2lineNumber=dict()
+    lineNumber=2
+    columnNumber=5 # Upload date is in the 5th column
+    for key2value in all_values:
+        key = str(key2value['central_sample_id']).replace('"','') + str(key2value['run_name']).replace('"','')
+        sampleKey2lineNumber[key] = lineNumber
+        lineNumber = lineNumber+1
+
+    cells_to_update=list()
+    with open('upload-dates.csv') as csvfile:
+        csvreader = csv.reader(csvfile)
+        for row in csvreader:
+            key = str(row[0]) + str(row[1])
+            if key in sampleKey2lineNumber.keys():
+                print(sampleKey2lineNumber[key])
+                cells_to_update.append(gspread.models.Cell(row=sampleKey2lineNumber[key], col=columnNumber, value=row[2]))
+            else:
+                run_name = str(row[1])
+                run_name = run_name[:run_name.rfind('-')]
+                key = str(row[0]) + run_name
+                if key in sampleKey2lineNumber.keys(): 
+                    cells_to_update.append(gspread.models.Cell(row=sampleKey2lineNumber[key], col=columnNumber, value=row[2]))
+                else:
+                    print('Upload date not found for ' + key)
+
+    if cells_to_update:
+        print('Updating values for ' + str(len(cells_to_update)) + ' rows')
+        sheet.update_cells(cells_to_update)
+    
 
 
 if __name__ == '__main__':
@@ -401,6 +444,9 @@ if __name__ == '__main__':
     generate_audit_parser.add_argument('--startdate', action='store', default='2021-01-01',  help='The start date for the report')
     generate_audit_parser.add_argument('--enddate', action='store', default='2021-03-31',  help='The end date for the report')
     generate_audit_parser.set_defaults(func=generate_audit_report)
+
+    update_upload_date_parser = subparsers.add_parser('update_upload_date', help='Update upload date')
+    update_upload_date_parser.set_defaults(func=update_upload_date)
     
     args = parser.parse_args()
     if args.verbose: 
