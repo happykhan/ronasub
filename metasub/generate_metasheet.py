@@ -61,7 +61,11 @@ def generate_metasheet(outputdir, datadir, gcredentials, sheet_name, submission_
                     if not x.get('is_surveillance'):
                         x['is_surveillance'] = 'N'
                     if not x.get('received_date') and not sample_only:
-                        x['received_date'] =  datetime.strftime(datetime.strptime(run_name.split('_')[0], '%y%m%d'), '%Y-%m-%d')
+                        if run_name.startswith('NORW'):
+                            x['received_date'] =  datetime.strftime(datetime.strptime(run_name.split('-')[1], '%Y%m%d'), '%Y-%m-%d')
+                        else:
+                            x['received_date'] =  datetime.strftime(datetime.strptime(run_name.split('_')[0], '%y%m%d'), '%Y-%m-%d')
+                            
                     if not x.get('collecting_org'):
                         x['collecting_org'] =  'REACT'
                 record = Samplemeta(unknown = EXCLUDE).load(x)

@@ -104,9 +104,9 @@ def main(data_name, bam_dir, upload=False, suffix='sorted.bam'):
         out.write(ET.tostring(all_run))
 
 
-study = 'ERP122169'
+study = 'ERP129580'
 
-bam_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/cog13.coronahit/result.coronahit.20200610.cog13.f50.r40/articNcovNanopore_sequenceAnalysisMedaka_articMinIONMedaka/'
+bam_dir = '/home/ubuntu/transfer/incoming/QIB_Sequencing/Covid-19_Seq/result.illumina.20210506-Pakistan'
 data_name = 'CoronaHiT-48'
 bam_suffix = 'sorted.bam'
 main(data_name, bam_dir, suffix=bam_suffix, upload=True)
