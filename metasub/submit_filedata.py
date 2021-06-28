@@ -47,10 +47,12 @@ def get_file_paths(datadir):
             else: 
                 # Try alternate filename for bam. 
                 found_sample['bam'] = os.path.join(datadir, 'qc_climb_upload', run_name, row['sample_name'], row['sample_name'] + '.mapped.bam') 
+                if not os.path.exists(found_sample['bam']):
+                    found_sample['bam'] = os.path.join(datadir, 'qc_climb_upload', run_name, row['sample_name'], row['sample_name'] + '.mapped.sorted.bam')
                 if os.path.exists(found_sample['bam']) and os.path.exists(found_sample['fasta']):
                     found_samples.append(found_sample)                
                 else:
-                    logging.error(f'Could not locate bam and fasta for {sample_name} in {datadir}')
+                    logging.error(f'Could not locate bam and fasta for {sample_name} in {datadir} see ' + found_sample['bam'])
         return found_samples
     else:
         logging.error(f'Multiple QC files in dir {datadir}')
