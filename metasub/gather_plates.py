@@ -393,6 +393,8 @@ def update_upload_date(args):
     for key2value in all_values:
         key = str(key2value['central_sample_id']).replace('"','') + str(key2value['run_name']).replace('"','')
         sampleKey2lineNumber[key] = lineNumber
+        key = str(key2value['central_sample_id']).replace('"','') + str(key2value['library_name']).replace('"','')
+        sampleKey2lineNumber[key] = lineNumber
         lineNumber = lineNumber+1
 
     cells_to_update=list()
@@ -405,12 +407,17 @@ def update_upload_date(args):
                 cells_to_update.append(gspread.models.Cell(row=sampleKey2lineNumber[key], col=columnNumber, value=row[2]))
             else:
                 run_name = str(row[1])
-                run_name = run_name[:run_name.rfind('-')]
+                #run_name = run_name[:run_name.rfind('-')]
                 key = str(row[0]) + run_name
                 if key in sampleKey2lineNumber.keys(): 
                     cells_to_update.append(gspread.models.Cell(row=sampleKey2lineNumber[key], col=columnNumber, value=row[2]))
                 else:
-                    print('Upload date not found for ' + key)
+                    run_name = run_name[:run_name.rfind('-')]
+                    key = str(row[0]) + run_name
+                    if key in sampleKey2lineNumber.keys(): 
+                        cells_to_update.append(gspread.models.Cell(row=sampleKey2lineNumber[key], col=columnNumber, value=row[2]))
+                    else:
+                        print('Upload date not found for ' + key)
 
     if cells_to_update:
         print('Updating values for ' + str(len(cells_to_update)) + ' rows')
