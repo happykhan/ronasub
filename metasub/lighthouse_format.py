@@ -71,17 +71,19 @@ def output_brants_bridge_metadata(args):
                         ct2value=fields[6]
                     
                     
-                    print(rootSample2CogId[rootSample] + ',UK-ENG,' + receivedDate +  ',' + plate2date[plateId] + ',,,Y,2,,,,,,,,,,,,,,,' + rootSample + ',' + rootSample + ',' + rootSample + ',BRANTS BRIDGE,,,,,,,,,' + ct1value + ',ORF1AB,,,' +  ct2value + ',' + ct2name + ',,,' + receivedDate + ',' + libraryName + ',Nextera,Nextera LITE,PAIRED,PCR,VIRAL_RNA,AMPLICON,,,,,,' + libraryName + ',ILLUMINA,NextSeq 500,,,,,,')
+                    print(rootSample2CogId[rootSample] + ',UK-ENG,' + receivedDate +  ',' + plate2date[plateId] + ',,,Y,2,,,,,,,,,,,,,,,' + rootSample + ',' + rootSample + ',' + rootSample + ',BRANTS BRIDGE,,,,,,,,,' + ct1value + ',ORF1AB,,,' +  ct2value + ',' + ct2name + ',,,' + receivedDate + ',' + libraryName + ',Nextera,Nextera LITE,PAIRED,PCR,VIRAL_RNA,AMPLICON,,,,,,' + libraryName + ',ILLUMINA,NextSeq 500,,,,,ncov2019-artic-nf (BWA/ivar),1.3.0 (ivar 1.3.0)')
 
 
 
 def output_ichne_metadata(args):
+    # Open the spreadsheet in Excel, add the COG Barcode, copy/paste into Google Sheets.
     libraryName = args.libraryname
     receivedDate = args.receiveddate
+    tsvFileName = args.tsvfilename
 
     print('central_sample_id,adm1,received_date,collection_date,source_age,source_sex,is_surveillance,collection_pillar,is_hcw,employing_hospital_name,employing_hospital_trust_or_board,is_hospital_patient,is_icu_patient,admitted_with_covid_diagnosis,admission_date,admitted_hospital_name,admitted_hospital_trust_or_board,is_care_home_worker,is_care_home_resident,anonymised_care_home_code,adm2,adm2_private,biosample_source_id,root_sample_id,sender_sample_id,collecting_org,sample_type_collected,sample_type_received,swab_site,epi_cluster,investigation_name,investigation_site,investigation_cluster,majora_credit,ct_1_ct_value,ct_1_test_target,ct_1_test_platform,ct_1_test_kit,ct_2_ct_value,ct_2_test_target,ct_2_test_platform,ct_2_test_kit,sequencing_org_received_date,library_name,library_seq_kit,library_seq_protocol,library_layout_config,library_selection,library_source,library_strategy,library_layout_insert_length,library_layout_read_length,barcode,artic_primers,artic_protocol,run_name,instrument_make,instrument_model,start_time,end_time,flowcell_id,flowcell_type,bioinfo_pipe_name,bioinfo_pipe_version')
             
-    with open('NCL-LHL-COG-COLLECTION-220621-with-COG-ID - NORWICH-220621-5.tsv') as f:
+    with open(tsvFileName) as f:
         lines = f.readlines()
         for line in lines:
                 fields = line.rstrip().split('\t')
@@ -100,7 +102,7 @@ def output_ichne_metadata(args):
                         collectionDate = fields[3]
                         collectionDate = collectionDate[6:10] + '-' + collectionDate[3:5] + '-' + collectionDate[0:2]
                         
-                        print(fields[14] + ',UK-ENG,' + receivedDate +  ',' + collectionDate + ',,,Y,2,,,,,,,,,,,,,,,' + rootSample + ',' + rootSample + ',' + rootSample + ',ICHNE,,,,,,,,,' + ct1value + ',ORF1AB,,,' +  ct2value + ',' + ct2name + ',,,' + receivedDate + ',' + libraryName + ',Nextera,Nextera LITE,PAIRED,PCR,VIRAL_RNA,AMPLICON,,,,,,' + libraryName + ',ILLUMINA,NextSeq 500,,,,,,')
+                        print(fields[14] + ',UK-ENG,' + receivedDate +  ',' + collectionDate + ',,,Y,2,,,,,,,,,,,,,,,' + rootSample + ',' + rootSample + ',' + rootSample + ',ICHNE,,,,,,,,,' + ct1value + ',ORF1AB,,,' +  ct2value + ',' + ct2name + ',,,' + receivedDate + ',' + libraryName + ',Nextera,Nextera LITE,PAIRED,PCR,VIRAL_RNA,AMPLICON,,,,,,' + libraryName + ',ILLUMINA,NextSeq 500,,,,,ncov2019-artic-nf (BWA/ivar),1.3.0 (ivar 1.3.0)')
 
 
 if __name__ == '__main__':
@@ -119,8 +121,9 @@ if __name__ == '__main__':
     brants_bridge_parser.set_defaults(func=output_brants_bridge_metadata)
 
     ichne_parser = subparsers.add_parser('ichne', help='Create the meta data for a ICHNE samples')
-    ichne_parser.add_argument('--libraryname', action='store', default='NORW-20210622',  help='Name of sequencing library')
-    ichne_parser.add_argument('--receiveddate', action='store', default='2021-06-21',  help='The date we received the samples')
+    ichne_parser.add_argument('--libraryname', action='store', default='NORW-20210630',  help='Name of sequencing library')
+    ichne_parser.add_argument('--receiveddate', action='store', default='2021-06-29',  help='The date we received the samples')
+    ichne_parser.add_argument('--tsvfilename', action='store', default='ichne.tsv',  help='TSV file name, must include COG IDs')
     ichne_parser.set_defaults(func=output_ichne_metadata)
 
     args = parser.parse_args()
