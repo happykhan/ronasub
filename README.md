@@ -1,12 +1,13 @@
 # ronasub
-Helper scripts for merging and submitting SARSCOV data to ENA, NCBI, COG
+Helper scripts for merging and submitting SARSCOV data to  COG
 
 Should include:
 
 * COG submission script.
-* ENA submission script.
 * Rapid submission script (Lightsub)
-* NRP Metadata conversion to master table.
+
+Scripts for other databases have been moved to : https://github.com/happykhan/subhelper
+e.g. ENA submission script.
 
 # Installation
 Python3! 
