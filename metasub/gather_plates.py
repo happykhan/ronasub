@@ -76,6 +76,7 @@ def gather(args):
                                 sequencing_date='Unknown'
                                 if date_line[:4]=='Date':
                                     sequencing_date = date_line[date_line.index(',')+1:]
+                                    if sequencing_date[1]=='/': sequencing_date = "0" + sequencing_date
                                     sequencing_date = sequencing_date[6:10] + '-' + sequencing_date[3:5] + '-' + sequencing_date[0:2]
                                     
                                 for line in lines:
@@ -92,9 +93,11 @@ def gather(args):
                                     elif sampleName[-5:]=='BLANK': # Ends with blank
                                         if '_' in sampleName: called2plate[fields[2]] = sampleName[:sampleName.index('_')]
                                         else: called2plate[fields[2]] = sampleName[:-5]
-                                    elif sampleName[:3]=='NC-' or sampleName[:3]=='PC-':
-                                        if '_' in sampleName: called2plate[fields[2]] = sampleName[3:sampleName.index('_')]
-                                        else: called2plate[fields[2]] = sampleName[3:]
+                                    elif sampleName[:3]=='NC-' or sampleName[:3]=='PC-' or sampleName[:3]=='NC_' or sampleName[:3]=='PC_':
+                                        trimmedSampleName = sampleName[3:]
+                                        if '-' in trimmedSampleName: called2plate[fields[2]] = trimmedSampleName[:trimmedSampleName.index('-')]
+                                        if '_' in trimmedSampleName: called2plate[fields[2]] = trimmedSampleName[:trimmedSampleName.index('_')]
+                                        else: called2plate[fields[2]] = trimmedSampleName
                                 
                                 for line in lines:
                                     fields = line.rstrip().split(',')
