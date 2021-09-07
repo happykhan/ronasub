@@ -92,6 +92,9 @@ def gather(args):
                                     elif sampleName[-5:]=='BLANK': # Ends with blank
                                         if '_' in sampleName: called2plate[fields[2]] = sampleName[:sampleName.index('_')]
                                         else: called2plate[fields[2]] = sampleName[:-5]
+                                    elif sampleName[:3]=='NC-' or sampleName[:3]=='PC-':
+                                        if '_' in sampleName: called2plate[fields[2]] = sampleName[3:sampleName.index('_')]
+                                        else: called2plate[fields[2]] = sampleName[3:]
                                 
                                 for line in lines:
                                     fields = line.rstrip().split(',')
